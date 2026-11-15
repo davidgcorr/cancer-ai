@@ -8,6 +8,39 @@ An open-source 3D anatomy explorer for learning about cancer by body region, wit
 
 Built with React, TypeScript, Three.js, Tailwind CSS, and shadcn/ui. Available in English, Spanish, French, and German. Educational information; not medical advice.
 
+## Screenshots
+
+Skin anatomy and settings, including language and palette selection:
+
+![Skin model, skin cancer Sankey diagram, and Spanish language settings](docs/screenshots/skin-and-settings.png)
+
+Lung anatomy and cancer classifications, with sourced subtype proportions:
+
+![Lung model and interactive cancer map with published subtype frequencies](docs/screenshots/lung-cancer-map.png)
+
+<details>
+<summary>More screenshots — earlier interface versions</summary>
+
+Expandable body-region navigation:
+
+![Female anatomical model and expandable body-region navigation in an earlier layout](docs/screenshots/anatomy-region-navigation.png)
+
+Leukemia details and blood/marrow context:
+
+![Earlier leukemia detail view with female anatomical model and blood and marrow explanation](docs/screenshots/leukemia-details.png)
+
+Movable classification panel:
+
+![Earlier floating Sankey panel showing leukemia subtypes and disease classifications](docs/screenshots/floating-leukemia-map.png)
+
+Anatomical close-up:
+
+![Close-up of abdominal organs and the body-region selector in an earlier layout](docs/screenshots/anatomy-close-up.png)
+
+</details>
+
+[All original screenshots and capture details](docs/screenshots/README.md)
+
 ## Run locally
 
 ```sh
