@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "verify:anatomy": "node scripts/verify-anatomy.mjs"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.5.0",
@@ -18,6 +19,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^1.73.0",
+    "open-anatomy-3d": "0.1.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "tailwind-merge": "^3.7.0",

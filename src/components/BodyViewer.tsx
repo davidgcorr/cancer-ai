@@ -1,69 +1,83 @@
-import { Suspense, useMemo, useRef, useState, Component } from 'react'
+import { Suspense, useMemo, useState, Component } from 'react'
 import type { ReactNode } from 'react'
-import { Canvas, useFrame } from '@react-three/fiber'
-import { Html, OrbitControls, ContactShadows } from '@react-three/drei'
+import { Canvas } from '@react-three/fiber'
+import { Html, OrbitControls, ContactShadows, useGLTF } from '@react-three/drei'
+import { ANATOMY_BY_KEY } from 'open-anatomy-3d'
 import * as THREE from 'three'
+import { coverageNote, extractAnatomyMeshes, MODEL_URLS, regionForMesh, regionMeshes } from '@/data/anatomy'
+import type { AnatomyView } from '@/data/anatomy'
 import type { Gender, Region, RegionId } from '@/data/regions'
 
-type Props = { gender: Gender; regions: Region[]; selected: RegionId; onSelect: (id: RegionId) => void; resetKey: number; markers: boolean; back: boolean }
-function Body({ gender }: { gender: Gender }) {
-  const female = gender === 'female'
-  const material = useMemo(() => new THREE.MeshPhysicalMaterial({ color: '#9fc7bd', roughness: .46, metalness: .07, clearcoat: .25 }), [])
-  const torso = useMemo(() => {
-    const profile = [[.34,-.25],[female ? .47:.44,-.08],[female ? .48:.43,.12],[female ? .33:.38,.51],[female ? .4:.49,1.04],[female ? .49:.57,1.48],[female ? .42:.49,1.7],[.18,1.83],[.15,1.98]]
-    const curve = new THREE.SplineCurve(profile.map(([x,y])=>new THREE.Vector2(x,y)))
-    return new THREE.LatheGeometry(curve.getPoints(60), 64)
-  }, [female])
-  function ellipsoid(position: [number,number,number], scale: [number,number,number], rotation = 0) {
-    return <mesh position={position} scale={scale} rotation={[0,0,rotation]} material={material}><sphereGeometry args={[1,40,32]} /></mesh>
+type Props = { gender: Gender; regions: Region[]; selected: RegionId; onSelect: (id: RegionId) => void; resetKey: number; markers: boolean; back: boolean; view: AnatomyView }
+const ignoreRaycast = () => {}
+function AnatomicalBody({ gender, selected, onSelect, markers, regions, view }: Props) {
+  // Meshopt is bundled locally by Drei; no remote model/decoder requests.
+  const { scene } = useGLTF(MODEL_URLS[gender], false, true)
+  const meshes = useMemo(() => extractAnatomyMeshes(scene), [scene])
+  const [hover, setHover] = useState<string | null>(null)
+  const mapping = regionMeshes(gender)
+  const selectedKeys = mapping[selected]
+  const boundsFor = (keys: string[]) => {
+    const box = new THREE.Box3()
+    meshes.filter(mesh => keys.includes(mesh.key)).forEach(mesh => box.union(mesh.bounds))
+    return box
   }
-  return <group>
-    <mesh geometry={torso} material={material} scale={[1,1,.65]} />
-    {ellipsoid([0,2.45,0],[.265,.365,.27])}
-    {ellipsoid([0,2.17,.105],[.19,.16,.19])}
-    {ellipsoid([0,1.99,0],[.15,.25,.15])}
-    {ellipsoid([0,2.39,.256],[.047,.084,.06])}
-    {[-1,1].map(side=><group key={side}>
-      {ellipsoid([side*.263,2.43,0],[.048,.095,.066])}
-      {ellipsoid([side*(female?.43:.51),1.57,0],[.23,.23,.235])}
-      {ellipsoid([side*(female?.61:.69),1.17,0],[female?.14:.17,.46,.16],side*.21)}
-      {ellipsoid([side*(female?.73:.81),.75,0],[.125,.135,.13])}
-      {ellipsoid([side*(female?.81:.89),.43,.015],[.115,.35,.115],side*.18)}
-      {ellipsoid([side*(female?.88:.96),.05,.02],[.105,.19,.073],side*.1)}
-      {[0,1,2,3].map(i=><mesh key={i} position={[side*(.82+i*.042+(female?0:.08)),-.1-(i===0?.015:i===3?0:.035),.025]} material={material}><capsuleGeometry args={[.021,.13,6,10]}/></mesh>)}
-      {ellipsoid([side*(female?.77:.85),.015,.045],[.044,.105,.05],-side*.5)}
-      {ellipsoid([side*.255,-.58,0],[female?.255:.235,.64,.245],-side*.045)}
-      {ellipsoid([side*.285,-1.15,.015],[.15,.19,.16])}
-      {ellipsoid([side*.285,-1.63,-.025],[.155,.47,.17],side*.015)}
-      {ellipsoid([side*.29,-2.08,0],[.095,.2,.105])}
-      {ellipsoid([side*.29,-2.26,.14],[.125,.105,.27])}
-      {female && ellipsoid([side*.235,1.3,.235],[.22,.19,.16])}
-    </group>)}
+  const selectedBox = boundsFor(selectedKeys)
+  const hoveredBox = hover ? boundsFor([hover]) : new THREE.Box3()
+  const labelBox = hover && !selectedKeys.includes(hover) ? hoveredBox : selectedBox
+  const label = hover && !selectedKeys.includes(hover) ? ANATOMY_BY_KEY[hover]?.label : regions.find(r => r.id === selected)?.name
+  const labelPosition = labelBox.isEmpty() || (view === 'skeleton' && !hover) ? null : labelBox.getCenter(new THREE.Vector3())
+  if (labelPosition) labelPosition.setZ(labelBox.max.z + .025)
+
+  return <group dispose={null}>
+    {meshes.map((mesh, index) => {
+      const structure = ANATOMY_BY_KEY[mesh.key]
+      const system = structure.system
+      const active = selectedKeys.includes(mesh.key) && view === 'organs'
+      const skin = system === 'skin'
+      const skeleton = system === 'skeleton'
+      const visible = view === 'surface' ? skin : view === 'skeleton' ? skeleton : skin || skeleton || system === 'organs'
+      if (!visible) return null
+      const ghost = view === 'organs' && (skin || skeleton)
+      const opacity = ghost ? skin ? .045 : ['skull', 'mandible', 'ribs_l', 'ribs_r', 'sternum', 'pelvis'].includes(mesh.key) ? .12 : .4 : 1
+      const color = active ? '#16896e' : skin ? '#c9b19b' : structure.color
+      return <mesh key={`${mesh.key}-${index}`} geometry={mesh.geometry} matrix={mesh.matrix} matrixAutoUpdate={false}
+        raycast={ghost ? ignoreRaycast : undefined}
+        onPointerOver={e => { e.stopPropagation(); setHover(mesh.key) }}
+        onPointerOut={() => setHover(null)}
+        onClick={e => { e.stopPropagation(); const region = regionForMesh(mesh.key, gender); if (region) onSelect(region) }}>
+        <meshStandardMaterial color={hover === mesh.key ? '#d39c4a' : color} roughness={.62} metalness={0}
+          transparent={opacity < 1} opacity={opacity} depthWrite={!ghost} side={THREE.DoubleSide}
+          emissive={active ? '#0e5545' : '#000000'} emissiveIntensity={.15} />
+      </mesh>
+    })}
+    {markers && view === 'organs' && regions.map(region => {
+      const box = boundsFor(mapping[region.id])
+      if (box.isEmpty()) return null
+      const point = box.getCenter(new THREE.Vector3()); point.z = box.max.z + .012
+      return <mesh key={region.id} position={point} onClick={e => { e.stopPropagation(); onSelect(region.id) }} onPointerOver={e=>{e.stopPropagation();setHover(mapping[region.id][0])}} onPointerOut={()=>setHover(null)}>
+        <sphereGeometry args={[selected === region.id ? .014 : .009, 16, 16]}/><meshBasicMaterial color={selected === region.id ? '#e5ffef' : '#278567'}/>
+      </mesh>
+    })}
+    {markers && labelPosition && view !== 'surface' && <Html position={labelPosition} center style={{ pointerEvents: 'none' }}><div className="anatomy-label">{label}</div></Html>}
   </group>
 }
-function Marker({ region, active, onSelect }: { region: Region; active: boolean; onSelect: () => void }) {
-  const ref = useRef<THREE.Mesh>(null)
-  const [hover, setHover] = useState(false)
-  useFrame(({clock}) => { if(ref.current) ref.current.scale.setScalar(1+Math.sin(clock.elapsedTime*2)*.07) })
-  return <group position={region.position}>
-    <mesh ref={ref} onClick={e=>{e.stopPropagation();onSelect()}} onPointerOver={()=>setHover(true)} onPointerOut={()=>setHover(false)}>
-      <sphereGeometry args={[active ? .09:.055,24,24]}/><meshBasicMaterial color={active?'#078571':'#e5fff7'} />
-    </mesh>
-    {active && <mesh><sphereGeometry args={[.145,24,24]}/><meshBasicMaterial color="#1caa8c" transparent opacity={.18} depthWrite={false}/></mesh>}
-    {(active||hover)&&<Html position={[.2,.04,0]} center style={{pointerEvents:'none'}}><div className="anatomy-label">{region.name}<span /></div></Html>}
-  </group>
-}
-class CanvasBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
-  state = { failed: false }
+class CanvasBoundary extends Component<{ children: ReactNode }, { failed: boolean; retry: number }> {
+  state = { failed: false, retry: 0 }
   static getDerivedStateFromError() { return { failed: true } }
-  render() { return this.state.failed ? <div className="canvas-fallback">The 3D view requires WebGL.<br/>You can still explore every region using the list.</div> : this.props.children }
+  render() {
+    return this.state.failed ? <div className="canvas-fallback"><div>The anatomy model could not be displayed.<br/>Check WebGL support and reload the model.<br/><button onClick={()=>this.setState(s=>({failed:false,retry:s.retry+1}))}>Try again</button><br/>Every cancer topic is still available in the region list.</div></div> : <div key={this.state.retry} style={{height:'100%'}}>{this.props.children}</div>
+  }
 }
-export function BodyViewer({gender, regions, selected, onSelect, resetKey, markers, back}: Props) {
-  return <CanvasBoundary><Canvas shadows camera={{position:[0,.3,8.5],fov:39}} dpr={[1,2]} aria-label={`Interactive ${gender} human body. Use the body region list to select an organ.`}>
+export function BodyViewer(props: Props) {
+  const note = coverageNote(props.selected, props.gender)
+  return <><CanvasBoundary><Canvas camera={{position:[0,.3,8.5],fov:39}} dpr={[1,1.5]} aria-label={`Detailed ${props.gender} anatomical model, ${props.view} view. Select body regions from the list or the model.`}>
     <color attach="background" args={['#eef3ef']}/>
-    <ambientLight intensity={1.5}/><directionalLight position={[-3,5,5]} intensity={2.4}/><directionalLight position={[3,1,-3]} intensity={2} color="#e8fff5"/>
-    <Suspense fallback={null}><group rotation={[0,back?Math.PI:0,0]}><Body gender={gender}/>{markers && regions.map(region=><Marker key={region.id} region={region} active={selected===region.id} onSelect={()=>onSelect(region.id)}/>)}</group>
-    <ContactShadows position={[0,-2.4,0]} opacity={.2} scale={7} blur={2.5} far={4}/>
-    <OrbitControls key={resetKey} target={[0,.2,0]} enablePan={false} minDistance={5.5} maxDistance={11} minPolarAngle={Math.PI*.25} maxPolarAngle={Math.PI*.7}/></Suspense>
-  </Canvas></CanvasBoundary>
+    <ambientLight intensity={.9}/><directionalLight position={[-3,5,5]} intensity={1.8}/><directionalLight position={[3,1,-3]} intensity={1} color="#e8fff5"/>
+    <Suspense fallback={<Html center><div className="model-loading" role="status"><span/>Loading anatomical model…</div></Html>}>
+      <group rotation={[0,props.back?Math.PI:0,0]} position={[0,-2.4,0]} scale={3}><AnatomicalBody key={props.gender} {...props}/></group>
+    </Suspense>
+    <ContactShadows position={[0,-2.41,0]} opacity={.18} scale={7} blur={2.5} far={4}/>
+    <OrbitControls key={props.resetKey} target={[0,.2,0]} enablePan minDistance={3} maxDistance={11} minPolarAngle={Math.PI*.18} maxPolarAngle={Math.PI*.8}/>
+  </Canvas></CanvasBoundary>{note && <div className="model-coverage" role="status">{note}</div>}</>
 }
