@@ -1,7 +1,7 @@
 import { useI18n } from '@/lib/i18n/provider'
 import { useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
-import { ArrowUpRight, Circle, Eye, EyeOff, Focus, Info, Mars, Maximize2, Minimize2, Rotate3D, Settings, Venus } from 'lucide-react'
+import { ArrowUpRight, Bone, Circle, Eye, EyeOff, Focus, Heart, Info, Mars, Maximize2, Minimize2, Rotate3D, Settings, UserRound, Venus } from 'lucide-react'
 import { ATTRIBUTION } from 'open-anatomy-3d'
 import { CancerPanel } from '@/components/CancerPanel'
 import { BodyViewer } from '@/components/BodyViewer'
@@ -20,8 +20,11 @@ import type { AnatomyView } from '@/data/anatomy'
 import { getRegions } from '@/data/regions'
 import type { Gender, RegionId } from '@/data/regions'
 
-function ToolButton({ label, onClick, children, pressed }: { label: string; onClick: () => void; children: ReactNode; pressed?: boolean }) {
-  return <Tooltip><TooltipTrigger asChild><Button variant="outline" size="icon" aria-label={label} aria-pressed={pressed} onClick={onClick}>{children}</Button></TooltipTrigger><TooltipContent>{label}</TooltipContent></Tooltip>
+function ToolButton({ label, onClick, children, pressed, expanded, controls }: { label: string; onClick: () => void; children: ReactNode; pressed?: boolean; expanded?: boolean; controls?: string }) {
+  return <Tooltip><TooltipTrigger asChild><Button variant="outline" size="icon-sm" className="bg-background aria-pressed:bg-accent aria-pressed:text-accent-foreground" aria-label={label} aria-pressed={pressed} aria-expanded={expanded} aria-controls={controls} onClick={onClick}>{children}</Button></TooltipTrigger><TooltipContent>{label}</TooltipContent></Tooltip>
+}
+function IconToggle({label,value,children}:{label:string;value:string;children:ReactNode}) {
+  return <Tooltip><TooltipTrigger asChild><ToggleGroupItem value={value} className="size-8 p-0" aria-label={label}>{children}</ToggleGroupItem></TooltipTrigger><TooltipContent>{label}</TooltipContent></Tooltip>
 }
 function Sources() {
   const { t } = useI18n()
@@ -68,6 +71,11 @@ function App() {
   const region = regions.find(r => r.id === selected)!
   const selectRegion = (id: RegionId) => { setSelected(id); setView(viewForRegion(id)) }
   const reset = () => { setBack(false); setResetKey(k => k + 1) }
+  const genderSelector=<ToggleGroup type="single" variant="outline" value={gender} className="bg-background" onValueChange={value=>{if(value){setGender(value as Gender);reset()}}} aria-label={t("Gender")}>
+    <IconToggle value="male" label={t("Male")}><Mars aria-hidden="true"/></IconToggle>
+    <IconToggle value="female" label={t("Female")}><Venus aria-hidden="true"/></IconToggle>
+  </ToggleGroup>
+
   return <TooltipProvider>
     <div className="min-h-dvh bg-background text-foreground">
       <header className="border-b">
@@ -95,36 +103,29 @@ function App() {
         <h1 className="text-2xl font-semibold tracking-tight">Onco explorer</h1>
         <div className={`grid items-start gap-4 ${modelMinimized?'grid-cols-1':'lg:grid-cols-[minmax(300px,1fr)_minmax(440px,1.25fr)]'}`}>
           <Card className="gap-0 overflow-hidden py-0 shadow-none">
-            <div className="flex flex-wrap items-center justify-between gap-3 p-3">
-              <div className="flex items-center gap-3"><span className="text-sm font-medium">{t("Body model")}</span>
-              <ToggleGroup type="single" variant="outline" value={gender} className="shrink-0" onValueChange={value=>{if(value){setGender(value as Gender);reset()}}} aria-label={t("Gender")}>
-                <ToggleGroupItem value="male" className="min-w-0 flex-1 gap-2 px-2" aria-label={t("Male")} title={t("Male")}><Mars aria-hidden="true" className="size-4 shrink-0"/><span aria-hidden="true">{t("Male").charAt(0).toLocaleUpperCase(language)}</span></ToggleGroupItem>
-                <ToggleGroupItem value="female" className="min-w-0 flex-1 gap-2 px-2" aria-label={t("Female")} title={t("Female")}><Venus aria-hidden="true" className="size-4 shrink-0"/><span aria-hidden="true">{t("Female").charAt(0).toLocaleUpperCase(language)}</span></ToggleGroupItem>
-              </ToggleGroup>
-              </div>
-              <Button variant="ghost" size="sm" aria-expanded={!modelMinimized} aria-controls="anatomy-panel-content" onClick={()=>setModelMinimized(value=>!value)}>
-                {modelMinimized?<Maximize2 aria-hidden="true"/>:<Minimize2 aria-hidden="true"/>}{t(modelMinimized?'Restore 3D model':'Minimize 3D model')}
-              </Button>
-            </div>
-            <div id="anatomy-panel-content" hidden={modelMinimized} className="border-t">{!modelMinimized&&<>
-
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b p-3 sm:p-4">
-              <ToggleGroup type="single" value={view} variant="outline" aria-label={t("Anatomy view")} onValueChange={value=>{if(value)setView(value as AnatomyView)}}>
-                <ToggleGroupItem value="organs" aria-label={t("Organs view")}>{t("Organs")}</ToggleGroupItem><ToggleGroupItem value="skeleton" aria-label={t("Skeleton view")}>{t("Skeleton")}</ToggleGroupItem><ToggleGroupItem value="surface" aria-label={t("Surface view")}>{t("Surface")}</ToggleGroupItem>
-              </ToggleGroup>
-
-            </div>
-            <div className="relative h-[520px] bg-muted/40 sm:h-[620px]">
+            {modelMinimized&&<div className="flex flex-wrap items-center justify-between gap-3 p-3">
+              <div className="flex items-center gap-3"><span className="text-sm font-medium">{t("Body model")}</span>{genderSelector}</div>
+              <ToolButton label={t('Restore 3D model')} expanded={false} controls="anatomy-panel-content" onClick={()=>setModelMinimized(false)}><Maximize2 aria-hidden="true"/></ToolButton>
+            </div>}
+            <div id="anatomy-panel-content" hidden={modelMinimized}>{!modelMinimized&&<div className="relative h-[520px] bg-muted/40 sm:h-[620px]">
               <BodyViewer gender={gender} regions={regions} selected={selected} onSelect={selectRegion} view={view} resetKey={resetKey} markers={markers} back={back} highlightColor={palettes[palette].color}/>
-            </div>
-            <div className="flex flex-wrap items-center justify-end gap-3 border-t p-3">
-              <div className="flex items-center gap-2">
-                <ToolButton label={t("Reset view")} onClick={reset}><Focus/></ToolButton>
-                <ToolButton label={t(markers?'Hide labels and markers':'Show labels and markers')} pressed={markers} onClick={()=>setMarkers(!markers)}>{markers?<Eye/>:<EyeOff/>}</ToolButton>
-                <Tooltip><TooltipTrigger asChild><Button variant="outline" size="sm" onClick={()=>{setBack(!back);setResetKey(k=>k+1)}}><Rotate3D/>{t(back?'Back':'Front')}</Button></TooltipTrigger><TooltipContent>{t("Switch front / back view")}</TooltipContent></Tooltip>
+              <div className="pointer-events-none absolute inset-x-3 top-3 z-10 flex flex-wrap items-start justify-between gap-2">
+                <div className="pointer-events-auto flex flex-wrap items-center gap-2 rounded-lg border bg-background/95 p-1 shadow-sm">
+                  <ToggleGroup type="single" value={view} variant="outline" className="bg-background" aria-label={t("Anatomy view")} onValueChange={value=>{if(value)setView(value as AnatomyView)}}>
+                    <IconToggle value="organs" label={t("Organs view")}><Heart aria-hidden="true"/></IconToggle>
+                    <IconToggle value="skeleton" label={t("Skeleton view")}><Bone aria-hidden="true"/></IconToggle>
+                    <IconToggle value="surface" label={t("Surface view")}><UserRound aria-hidden="true"/></IconToggle>
+                  </ToggleGroup>
+                  {genderSelector}
+                </div>
+                <div className="pointer-events-auto ml-auto flex items-center gap-1 rounded-lg border bg-background/95 p-1 shadow-sm">
+                  <ToolButton label={t("Reset view")} onClick={reset}><Focus aria-hidden="true"/></ToolButton>
+                  <ToolButton label={t(markers?'Hide labels and markers':'Show labels and markers')} pressed={markers} onClick={()=>setMarkers(!markers)}>{markers?<Eye aria-hidden="true"/>:<EyeOff aria-hidden="true"/>}</ToolButton>
+                  <ToolButton label={t("Switch front / back view")} pressed={back} onClick={()=>{setBack(!back);setResetKey(k=>k+1)}}><Rotate3D aria-hidden="true"/></ToolButton>
+                  <ToolButton label={t('Minimize 3D model')} expanded={true} controls="anatomy-panel-content" onClick={()=>setModelMinimized(true)}><Minimize2 aria-hidden="true"/></ToolButton>
+                </div>
               </div>
-            </div>
-            </>}</div>
+            </div>}</div>
           </Card>
           <CancerPanel region={region} regions={regions} gender={gender} color={palettes[palette].color} onRegionChange={selectRegion}/>
         </div>
