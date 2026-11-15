@@ -15,17 +15,18 @@ Open Vite's Local URL. `npm run build` creates the production build; `npm run pr
 
 The initial primitive mannequin has been replaced with the real named meshes from **open-anatomy-3d 0.1.0**, pinned in the lockfile. Both GLB assets are imported through Vite and served locally, including Meshopt decoding; model loading does not rely on an external model CDN.
 
-- Male: BodyParts3D 4.0 anatomy, about 1.03 million triangles, 128 named mesh structures.
+- Male: BodyParts3D 4.0 base anatomy, about 1.03 million triangles, 128 named mesh structures.
 - Female: adapted BodyParts3D internal anatomy fitted to a MakeHuman female surface, with Human Reference Atlas female breast/reproductive organs; about 1.17 million triangles, 133 named mesh structures. This is an adapted educational model, not a separately scanned or clinically validated female atlas.
+- Z-Anatomy supplies five genuine outer lung lobes and the thyroid as separate locally bundled supplement assets. The base package’s meshes labeled lung contain branching internal structures; those are excluded from rendering and selection in favor of these actual lung surfaces.
 - Separate organ, skeleton, and surface views preserve source geometry. Organ view uses translucent skin and bones to expose the internal anatomy.
 - Selection highlights actual organ meshes. Marker and label locations come from transformed geometry bounds; no manually positioned placeholder organs are used.
 - Hover labels identify visible structures, including structures outside the current cancer catalog. Clicks on mapped organs synchronize the cancer panel. The seven-region list remains keyboard accessible.
-- Missing coverage is explicit: no separately segmented thyroid or male breast tissue; colon and rectum are grouped into a single large-intestine mesh.
+- Missing coverage is explicit: no separately segmented male breast tissue; colon and rectum are grouped into a single large-intestine mesh.
 
 ## Research and source choice
 
 - [BodyParts3D](https://dbarchive.biosciencedbc.jp/en/bodyparts3d/desc.html) supplies an adult male atlas with identifiable anatomical structures. Its [current provider license](https://dbarchive.biosciencedbc.jp/en/bodyparts3d/lic.html), updated February 27, 2025, is CC BY 4.0.
-- [Z-Anatomy](https://github.com/Z-Anatomy/Models-of-human-anatomy) is a detailed open anatomical atlas. Its distribution uses CC BY-SA 4.0 and its attribution file lists additional third-party components with their own terms. It was considered, but the chosen package offers a direct web-ready male/female integration and documented per-source provenance.
+- [Z-Anatomy](https://github.com/Z-Anatomy/Models-of-human-anatomy) is a detailed open anatomical atlas. Its distribution uses CC BY-SA 4.0 and its attribution file lists additional third-party components with their own terms. Its five lung lobes and thyroid are extracted from a [pinned web-ready export](https://github.com/nqwrc/3d-anatomy/tree/8ca3b7421bcfbe88b85859eb1983d5cf79f21749/public/models). These selected organ adaptations retain CC BY-SA 4.0; no kidney, inner ear, or other separately licensed third-party geometry is included.
 - [Open Anatomy 3D](https://github.com/MervinR07/open-anatomy-3d) provides web-ready compressed GLBs and a catalog of named mesh structures. [Its provenance and transformation pipeline](https://github.com/MervinR07/open-anatomy-3d/blob/main/ATTRIBUTION.md) document BodyParts3D, HRA, and MakeHuman sources.
 
 The app makes no claim that the assets are clinically validated. The female adaptation and omitted structures are documented in the interface and above.
@@ -34,7 +35,21 @@ The app makes no claim that the assets are clinically validated. The female adap
 
 Anatomy: BodyParts3D © The Database Center for Life Science (CC BY 4.0); female organs: Human Reference Atlas 3D Reference Organs, HuBMAP (CC BY 4.0); female body: MakeHuman (CC0). Modified by open-anatomy-3d (https://github.com/MervinR07/open-anatomy-3d), CC BY 4.0.
 
-Models and catalog: [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Original attribution and model license are preserved in `public/anatomy/` and exposed in the app. Oncoatlas modifies display colors, transparency, and highlights only; the upstream geometry is unchanged. Package code is MIT.
+Base models and catalog: [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Original attribution and model license are preserved in `public/anatomy/` and exposed in the app. The base geometry is unchanged. Package code is MIT.
+
+Lung and thyroid supplements: Z-Anatomy, derived from BodyParts3D © DBCLS, **CC BY-SA 4.0**. Oncoatlas extracts, translates, and (for the female torso) scales these meshes using cross-atlas tracheal and liver landmarks. These registrations are educational adaptations, not clinical alignments. Full provenance and changes are in `public/anatomy/SUPPLEMENT-NOTICE.md`; original upstream notices are retained alongside the two freely downloadable derivative GLBs.
+
+### Reproduce supplementary assets
+
+Download `visceral.glb` from the pinned source export linked above. With Blender installed:
+
+```sh
+blender --background --python scripts/extract-z-organs.py -- /path/to/visceral.glb /tmp/z-selected.glb
+node scripts/build-z-organs.mjs /tmp/z-selected.glb
+npm run verify:anatomy
+```
+
+The build script preserves the source organ surfaces and records the registration matrix and source names in the resulting GLB metadata.
 
 Cancer examples and links reference the [National Cancer Institute](https://www.cancer.gov/types). These are selected educational examples, not an exhaustive catalog or a risk assessment.
 

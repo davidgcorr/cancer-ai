@@ -2,9 +2,8 @@ import { Suspense, useMemo, useState, Component } from 'react'
 import type { ReactNode } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { Html, OrbitControls, ContactShadows, useGLTF } from '@react-three/drei'
-import { ANATOMY_BY_KEY } from 'open-anatomy-3d'
 import * as THREE from 'three'
-import { coverageNote, extractAnatomyMeshes, MODEL_URLS, regionForMesh, regionMeshes } from '@/data/anatomy'
+import { coverageNote, extractAnatomyMeshes, MODEL_URLS, SUPPLEMENT_URLS, STRUCTURES, regionForMesh, regionMeshes } from '@/data/anatomy'
 import type { AnatomyView } from '@/data/anatomy'
 import type { Gender, Region, RegionId } from '@/data/regions'
 
@@ -12,8 +11,8 @@ type Props = { gender: Gender; regions: Region[]; selected: RegionId; onSelect: 
 const ignoreRaycast = () => {}
 function AnatomicalBody({ gender, selected, onSelect, markers, regions, view }: Props) {
   // Meshopt is bundled locally by Drei; no remote model/decoder requests.
-  const { scene } = useGLTF(MODEL_URLS[gender], false, true)
-  const meshes = useMemo(() => extractAnatomyMeshes(scene), [scene])
+  const [base, supplement] = useGLTF([MODEL_URLS[gender], SUPPLEMENT_URLS[gender]], false, true)
+  const meshes = useMemo(() => [...extractAnatomyMeshes(base.scene), ...extractAnatomyMeshes(supplement.scene)], [base.scene, supplement.scene])
   const [hover, setHover] = useState<string | null>(null)
   const mapping = regionMeshes(gender)
   const selectedKeys = mapping[selected]
@@ -25,13 +24,14 @@ function AnatomicalBody({ gender, selected, onSelect, markers, regions, view }: 
   const selectedBox = boundsFor(selectedKeys)
   const hoveredBox = hover ? boundsFor([hover]) : new THREE.Box3()
   const labelBox = hover && !selectedKeys.includes(hover) ? hoveredBox : selectedBox
-  const label = hover && !selectedKeys.includes(hover) ? ANATOMY_BY_KEY[hover]?.label : regions.find(r => r.id === selected)?.name
+  const label = hover && !selectedKeys.includes(hover) ? STRUCTURES[hover]?.label : regions.find(r => r.id === selected)?.name
   const labelPosition = labelBox.isEmpty() || (view === 'skeleton' && !hover) ? null : labelBox.getCenter(new THREE.Vector3())
   if (labelPosition) labelPosition.setZ(labelBox.max.z + .025)
 
   return <group dispose={null}>
     {meshes.map((mesh, index) => {
-      const structure = ANATOMY_BY_KEY[mesh.key]
+      if (mesh.key === 'lung_l' || mesh.key === 'lung_r') return null // Superseded by the actual Z-Anatomy lung surfaces.
+      const structure = STRUCTURES[mesh.key]
       const system = structure.system
       const active = selectedKeys.includes(mesh.key) && view === 'organs'
       const skin = system === 'skin'
