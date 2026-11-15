@@ -1,6 +1,12 @@
 # onco-milver
 
-A React + TypeScript anatomy explorer for learning about cancer by body region.
+An open-source 3D anatomy explorer for learning about cancer by body region, with interactive Sankey diagrams, subtype details, sourced frequency estimates, treatment summaries, and HTML/PNG reports.
+
+[Explore the app](https://oncomilver.davidgc.com) · [Contribute](CONTRIBUTING.md) · [Report an issue](https://github.com/davidgcorr/cancer-ai/issues) · [MIT license](LICENSE)
+
+**Contributors wanted.** Developers, clinicians, anatomy specialists, designers, and translators are welcome. Help improve clinical references, anatomical coverage, accessibility, translations, testing, and documentation. Start with the [contributor guide](CONTRIBUTING.md) or [open an issue](https://github.com/davidgcorr/cancer-ai/issues/new) to introduce an idea.
+
+Built with React, TypeScript, Three.js, Tailwind CSS, and shadcn/ui. Available in English, Spanish, French, and German. Educational information; not medical advice.
 
 ## Run locally
 
