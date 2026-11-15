@@ -137,3 +137,11 @@ npm run deploy
 Validate without deploying with `npm run deploy:dry-run`. To restore an earlier production version, use `npx wrangler rollback` and select the version to restore.
 
 Cloudflare references: [static assets](https://developers.cloudflare.com/workers/static-assets/), [custom domains](https://developers.cloudflare.com/workers/configuration/routing/custom-domains/), [GitHub Actions](https://developers.cloudflare.com/workers/ci-cd/external-cicd/github-actions/).
+
+## Open source and licensing
+
+The application source code is available at [davidgcorr/cancer-ai](https://github.com/davidgcorr/cancer-ai) under the [MIT license](LICENSE). Copyright © 2026 David G. Corr.
+
+Anatomy assets are separately licensed and are excluded from the application MIT license. The base models retain [CC BY 4.0](public/anatomy/LICENSE-MODELS.md); the lung and thyroid supplements retain [CC BY-SA 4.0](public/anatomy/SUPPLEMENT-NOTICE.md). Preserve their attribution and license notices when redistributing these assets. Third-party dependencies retain their respective licenses.
+
+[Website](https://davidgc.com) · [Twitter / X](https://x.com/davidgcorr) · [LinkedIn](https://www.linkedin.com/in/davidgarciacorrochano/)

@@ -143,7 +143,18 @@ function App() {
           </Card>
           <CancerPanel region={region} regions={regions} gender={gender} color={palettes[palette].color} onRegionChange={selectRegion} navigation={navigation} onPathChange={path=>setTreeSelection({regionId:selected,gender,path})}/>
         </div>
-        <footer className="flex flex-wrap items-center justify-between gap-2 border-t pt-4"><p className="flex items-center gap-2 text-xs text-muted-foreground"><Info className="size-3.5 shrink-0"/>{t("For education and awareness. Not medical advice.")}</p><Sources/></footer>
+        <footer className="space-y-2 border-t pt-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <nav aria-label={t('Author links')} className="flex flex-wrap items-center gap-x-4 gap-y-1">
+              <Button variant="link" size="sm" className="h-auto p-0 text-xs text-muted-foreground" asChild><a href="https://davidgc.com" target="_blank" rel="noopener noreferrer">davidgc.com</a></Button>
+              <Button variant="link" size="sm" className="h-auto p-0 text-xs text-muted-foreground" asChild><a href="https://x.com/davidgcorr" target="_blank" rel="noopener noreferrer">Twitter / X</a></Button>
+              <Button variant="link" size="sm" className="h-auto p-0 text-xs text-muted-foreground" asChild><a href="https://www.linkedin.com/in/davidgarciacorrochano/" target="_blank" rel="noopener noreferrer">LinkedIn</a></Button>
+              <Button variant="link" size="sm" className="h-auto p-0 text-xs text-muted-foreground" asChild><a href="https://github.com/davidgcorr/cancer-ai" target="_blank" rel="noopener noreferrer">{t('Source code')}</a></Button>
+            </nav>
+            <Sources/>
+          </div>
+          <p className="flex items-center gap-2 text-xs text-muted-foreground"><Info className="size-3.5 shrink-0"/>{t("For education and awareness. Not medical advice.")}</p>
+        </footer>
       </main>
     </div>
   </TooltipProvider>

@@ -1468,5 +1468,15 @@ export const clinicalMessages: Record<string, [string,string,string]> = {
     "Mostrar árbol anatómico",
     "Afficher l’arbre anatomique",
     "Anatomiebaum einblenden"
+  ],
+  "Author links": [
+    "Enlaces del autor",
+    "Liens de l’auteur",
+    "Links zum Autor"
+  ],
+  "Source code": [
+    "Código fuente",
+    "Code source",
+    "Quellcode"
   ]
 }
