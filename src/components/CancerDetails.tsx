@@ -4,7 +4,6 @@ import { useI18n } from '@/lib/i18n/provider'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb'
 import { Fragment } from 'react'
 import type { CancerFamily, CancerSubtype } from '@/data/cancer-taxonomy'
@@ -39,8 +38,8 @@ export function CancerDetails({region,families,path,choices,onNavigate}:{region:
   </>:detail.family?<>
     <FrequencyInfo frequency={detail.family.frequency}/>
     <h3 className="text-sm font-medium">{t('Histologic and disease subtypes')}</h3>
-    <Accordion type="multiple">{detail.family.subtypes.map(subtype=><AccordionItem value={subtype.id} key={subtype.id}><AccordionTrigger><span className="flex w-full flex-wrap items-center justify-between gap-2 pr-2"><span>{t(subtype.label)}</span><FrequencyInfo frequency={subtype.frequency} compact/></span></AccordionTrigger><AccordionContent className="space-y-4"><SubtypeSummary subtype={subtype}/><Button variant="outline" size="sm" onClick={()=>onNavigate({familyId:detail.family!.id,subtypeId:subtype.id})}>{t('Open subtype details')}<ArrowRight/></Button></AccordionContent></AccordionItem>)}</Accordion>
-  </>:<div className="space-y-3">{families.map(family=><Card key={family.id} className="gap-3 py-4 shadow-none"><CardHeader className="px-4"><CardTitle className="text-base">{t(family.label)}</CardTitle><CardDescription>{t('Subtypes')}: {family.subtypes.length}</CardDescription></CardHeader><CardContent className="flex items-center justify-end gap-3 px-4 has-[[data-slot=badge]]:justify-between"><FrequencyInfo frequency={family.frequency} compact/><Button variant="outline" size="sm" onClick={()=>onNavigate({familyId:family.id})}>{t('Open details')}<ArrowRight/></Button></CardContent></Card>)}</div>}
+    <div className="space-y-2">{detail.family.subtypes.map(subtype=><Button key={subtype.id} variant="outline" className="h-auto w-full justify-between gap-3 py-3 text-left whitespace-normal" onClick={()=>onNavigate({familyId:detail.family!.id,subtypeId:subtype.id})}><span>{t(subtype.label)}</span><FrequencyInfo frequency={subtype.frequency} compact/></Button>)}</div>
+  </>:<div className="space-y-3">{families.map(family=><Card key={family.id} className="gap-3 py-4 shadow-none"><CardHeader className="px-4"><CardTitle className="text-base"><Button variant="link" className="h-auto justify-start p-0 text-left whitespace-normal text-base" onClick={()=>onNavigate({familyId:family.id})}>{t(family.label)}</Button></CardTitle><CardDescription>{t('Subtypes')}: {family.subtypes.length}</CardDescription></CardHeader>{hasPublishedFrequency(family.frequency)&&<CardContent className="px-4"><FrequencyInfo frequency={family.frequency} compact/></CardContent>}</Card>)}</div>}
   <p className="text-xs text-muted-foreground">{t('Coverage: major and selected rare histologies; not a complete WHO or ICD-O catalog. Overlapping umbrella categories must not be added together.')}</p>
  </div>
 }

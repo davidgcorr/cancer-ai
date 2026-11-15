@@ -4,6 +4,8 @@ import type { ReactNode } from 'react'
 import { ArrowUpRight, Bone, Circle, Eye, EyeOff, Focus, Heart, Info, Mars, Maximize2, Minimize2, Rotate3D, Settings, UserRound, Venus } from 'lucide-react'
 import { ATTRIBUTION } from 'open-anatomy-3d'
 import { CancerPanel } from '@/components/CancerPanel'
+import { AnatomyTree } from '@/components/AnatomyTree'
+import type { DetailPath } from '@/data/cancer-detail'
 import { BodyViewer } from '@/components/BodyViewer'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -63,6 +65,9 @@ function App() {
   const [markers, setMarkers] = useState(true)
   const [back, setBack] = useState(false)
   const [modelMinimized, setModelMinimized] = useState(false)
+  const [treeSelection,setTreeSelection]=useState<{regionId:RegionId;gender:Gender;path:DetailPath}>({regionId:'lungs',gender:'male',path:{}})
+  const [navigation,setNavigation]=useState<{regionId:RegionId;gender:Gender;path:DetailPath}>()
+
   useEffect(() => {
     document.documentElement.dataset.palette = palette
     try { localStorage.setItem('onco-milver-palette', palette) } catch { /* Preferences are optional when storage is unavailable. */ }
@@ -70,6 +75,11 @@ function App() {
   const regions = useMemo(() => getRegions(gender), [gender])
   const region = regions.find(r => r.id === selected)!
   const selectRegion = (id: RegionId) => { setSelected(id); setView(viewForRegion(id)) }
+  const selectFromTree=(regionId:RegionId,path:DetailPath)=>{
+    selectRegion(regionId)
+    const selection={regionId,gender,path}
+    setTreeSelection(selection);setNavigation(selection)
+  }
   const reset = () => { setBack(false); setResetKey(k => k + 1) }
   const genderSelector=<ToggleGroup type="single" variant="outline" value={gender} className="bg-background" onValueChange={value=>{if(value){setGender(value as Gender);reset()}}} aria-label={t("Gender")}>
     <IconToggle value="male" label={t("Male")}><Mars aria-hidden="true"/></IconToggle>
@@ -80,7 +90,7 @@ function App() {
     <div className="min-h-dvh bg-background text-foreground">
       <header className="border-b">
         <div className="mx-auto flex h-16 max-w-[1600px] items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-2.5"><Circle className="size-5" strokeWidth={1.75} aria-hidden="true"/><span className="text-base font-semibold tracking-tight">onco-milver</span></div>
+          <div className="flex items-center gap-2.5"><Circle className="size-5" strokeWidth={1.75} aria-hidden="true"/><span className="text-base font-semibold tracking-tight">onco-milver</span><span className="text-xs font-normal text-muted-foreground">Onco explorer</span></div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" aria-label={t("Settings")} title={t("Settings")}><Settings className="size-4"/></Button></DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="max-h-[calc(100dvh-2rem)] w-52 overflow-y-auto">
@@ -99,16 +109,20 @@ function App() {
           </DropdownMenu>
         </div>
       </header>
-      <main className="mx-auto max-w-[1600px] space-y-6 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
-        <h1 className="text-2xl font-semibold tracking-tight">Onco explorer</h1>
-        <div className={`grid items-start gap-4 ${modelMinimized?'grid-cols-1':'lg:grid-cols-[minmax(300px,1fr)_minmax(440px,1.25fr)]'}`}>
+      <main aria-label="Onco explorer" className={`mx-auto w-full space-y-6 px-4 py-6 sm:px-8 lg:px-10 lg:py-8 ${modelMinimized?'max-w-6xl':'max-w-[1600px]'}`}>
+        <div className={`grid items-start gap-4 ${modelMinimized?'grid-cols-1':'xl:grid-cols-[minmax(480px,1fr)_minmax(440px,1.15fr)]'}`}>
           <Card className="gap-0 overflow-hidden py-0 shadow-none">
             {modelMinimized&&<div className="flex flex-wrap items-center justify-between gap-3 p-3">
               <div className="flex items-center gap-3"><span className="text-sm font-medium">{t("Body model")}</span>{genderSelector}</div>
               <ToolButton label={t('Restore 3D model')} expanded={false} controls="anatomy-panel-content" onClick={()=>setModelMinimized(false)}><Maximize2 aria-hidden="true"/></ToolButton>
             </div>}
             <div id="anatomy-panel-content" hidden={modelMinimized}>{!modelMinimized&&<div className="relative h-[520px] bg-muted/40 sm:h-[620px]">
+              <div className="absolute inset-x-0 top-28 bottom-0 flex gap-2 p-3 sm:top-16">
+                <AnatomyTree regions={regions} gender={gender} selected={selected} path={treeSelection.regionId===selected&&treeSelection.gender===gender?treeSelection.path:{}} onSelect={selectFromTree}/>
+                <div className="relative min-w-0 flex-1">
               <BodyViewer gender={gender} regions={regions} selected={selected} onSelect={selectRegion} view={view} resetKey={resetKey} markers={markers} back={back} highlightColor={palettes[palette].color}/>
+                </div>
+              </div>
               <div className="pointer-events-none absolute inset-x-3 top-3 z-10 flex flex-wrap items-start justify-between gap-2">
                 <div className="pointer-events-auto flex flex-wrap items-center gap-2 rounded-lg border bg-background/95 p-1 shadow-sm">
                   <ToggleGroup type="single" value={view} variant="outline" className="bg-background" aria-label={t("Anatomy view")} onValueChange={value=>{if(value)setView(value as AnatomyView)}}>
@@ -127,7 +141,7 @@ function App() {
               </div>
             </div>}</div>
           </Card>
-          <CancerPanel region={region} regions={regions} gender={gender} color={palettes[palette].color} onRegionChange={selectRegion}/>
+          <CancerPanel region={region} regions={regions} gender={gender} color={palettes[palette].color} onRegionChange={selectRegion} navigation={navigation} onPathChange={path=>setTreeSelection({regionId:selected,gender,path})}/>
         </div>
         <footer className="flex flex-wrap items-center justify-between gap-2 border-t pt-4"><p className="flex items-center gap-2 text-xs text-muted-foreground"><Info className="size-3.5 shrink-0"/>{t("For education and awareness. Not medical advice.")}</p><Sources/></footer>
       </main>

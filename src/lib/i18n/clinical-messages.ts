@@ -1458,5 +1458,15 @@ export const clinicalMessages: Record<string, [string,string,string]> = {
     "Restaurar modelo 3D",
     "Restaurer le modèle 3D",
     "3D-Modell wiederherstellen"
+  ],
+  "Hide anatomy tree": [
+    "Ocultar árbol anatómico",
+    "Masquer l’arbre anatomique",
+    "Anatomiebaum ausblenden"
+  ],
+  "Show anatomy tree": [
+    "Mostrar árbol anatómico",
+    "Afficher l’arbre anatomique",
+    "Anatomiebaum einblenden"
   ]
 }

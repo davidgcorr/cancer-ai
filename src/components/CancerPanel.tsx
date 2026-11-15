@@ -12,7 +12,7 @@ import { pathsForFlowNode } from '@/data/cancer-detail'
 import type { DetailPath } from '@/data/cancer-detail'
 import { CancerSankey } from '@/components/CancerSankey'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -21,7 +21,7 @@ import { buildCancerGraph, mergeCancerGraphs } from '@/data/cancer-graph'
 import type { FlowNode } from '@/data/cancer-graph'
 import type { Gender, Region, RegionId } from '@/data/regions'
 
-export function CancerPanel({region,regions,gender,color,onRegionChange}:{region:Region;regions:Region[];gender:Gender;color:string;onRegionChange:(id:RegionId)=>void}) {
+export function CancerPanel({region,regions,gender,color,onRegionChange,navigation,onPathChange}:{navigation?:{regionId:RegionId;gender:Gender;path:DetailPath};onPathChange:(path:DetailPath)=>void;region:Region;regions:Region[];gender:Gender;color:string;onRegionChange:(id:RegionId)=>void}) {
   const { t } = useI18n()
   const [mode,setMode]=useState<'map'|'details'>('map')
   const [detailSelection,setDetailSelection]=useState<{region:string;gender:Gender;path:DetailPath;choices?:DetailPath[]}>({region:region.id,gender,path:{}})
@@ -33,6 +33,15 @@ export function CancerPanel({region,regions,gender,color,onRegionChange}:{region
   const [zoom,setZoom]=useState(100)
   const [filter,setFilter]=useState<{region:string;gender:Gender;family?:string;subtype?:string}>({region:region.id,gender})
   const [inspection,setInspection]=useState<{region:string;gender:Gender;node:FlowNode}>()
+  const [lastNavigation,setLastNavigation]=useState(navigation)
+  if(navigation!==lastNavigation){
+    setLastNavigation(navigation)
+    if(navigation&&navigation.gender===gender){
+    setDetailSelection({region:navigation.regionId,gender,path:navigation.path})
+    setFilter({region:navigation.regionId,gender,family:navigation.path.familyId,subtype:navigation.path.subtypeId})
+    setInspection(undefined);setOverview(false);setMode(navigation.path.familyId?'details':'map')
+    }
+  }
   const currentFilter=filter.region===region.id&&filter.gender===gender?filter:undefined
   const inspected=inspection?.region===region.id&&inspection.gender===gender?inspection.node:undefined
   const taxonomy=useMemo(()=>getTaxonomy(region.id,gender),[region.id,gender])
@@ -66,11 +75,13 @@ export function CancerPanel({region,regions,gender,color,onRegionChange}:{region
     const candidates=pathsForFlowNode(getTaxonomy(targetRegion,gender),node)
     setDetailSelection({region:targetRegion,gender,path:candidates.length===1?candidates[0]:{},choices:candidates.length>1?candidates:undefined})
     setMode('details')
+    if(targetRegion===region.id&&candidates.length===1)onPathChange(candidates[0])
     if(node.kind==='region'){setFilter({region:targetRegion,gender});setInspection(undefined)}
     if(node.kind==='type')setFilter({region:targetRegion,gender,family:node.familyId})
     if(node.kind==='subtype')setFilter({region:targetRegion,gender,family:node.familyId,subtype:node.subtypeId})
   }
   const navigateDetail=(path:DetailPath)=>{
+    onPathChange(path)
     setDetailSelection({region:region.id,gender,path})
     setFilter({region:region.id,gender,family:path.familyId,subtype:path.subtypeId})
     setOverview(false)
@@ -79,28 +90,25 @@ export function CancerPanel({region,regions,gender,color,onRegionChange}:{region
   const focusedFamily=taxonomy.find(f=>f.id===selected?.familyId)
   const focusedSubtype=focusedFamily?.subtypes.find(s=>s.id===selected?.subtypeId)
   const panel=<Card className={`flex h-full min-h-0 flex-col gap-0 overflow-hidden py-0 ${floating?'shadow-xl':'shadow-none'}`} aria-label={t("Cancer classification panel")}>
-    <CardHeader className={`sankey-drag-handle flex flex-row items-start justify-between gap-3 border-b px-4 py-3 ${floating?'cursor-move':''}`}>
-      <div className="space-y-1"><CardTitle className="text-base">{t("Cancer map")}</CardTitle></div>
+    <CardHeader className={`sankey-drag-handle flex flex-row items-start justify-end gap-3 px-3 pt-2 pb-0 ${floating?'cursor-move':''}`}>
       <div className="flex items-center gap-1">
         {floating&&<Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon-sm" aria-label={t("Move panel with arrow keys, or drag the header")} onKeyDown={moveWithKeys}><GripVertical/></Button></TooltipTrigger><TooltipContent>{t("Drag header or use arrow keys to move")}</TooltipContent></Tooltip>}
         <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon-sm" aria-label={t(floating?'Dock panel on right':'Float panel to move and resize')} onClick={()=>floating?setFloating(false):floatPanel()}>{floating?<PanelRightClose/>:<Maximize2/>}</Button></TooltipTrigger><TooltipContent>{t(floating?'Dock panel':'Float, move and resize')}</TooltipContent></Tooltip>
       </div>
     </CardHeader>
     <CardContent className="min-h-0 flex-1 space-y-4 overflow-auto p-4">
-      <Accordion type="single" collapsible>
+      <Accordion type="single" collapsible defaultValue="">
         <AccordionItem value="regions" className="rounded-md border px-3">
           <AccordionTrigger className="items-center py-3"><span className="flex flex-wrap items-center gap-2">{t('Body regions')}<Badge variant="secondary">{regions.length}</Badge><span className="font-normal text-muted-foreground">{t(region.name)}</span></span></AccordionTrigger>
           <AccordionContent>
-            <Accordion key={`${gender}:${region.id}`} type="single" collapsible defaultValue={region.id} onValueChange={id=>{if(id){clear();setOverview(false);onRegionChange(id as RegionId)}}}>
+            <Accordion key={`${gender}:${region.id}`} type="single" collapsible onValueChange={id=>{if(id){clear();setOverview(false);onRegionChange(id as RegionId)}}}>
               {regions.map(item=><AccordionItem key={item.id} value={item.id}>
                 <AccordionTrigger className={`py-3 ${item.id===region.id?'text-primary':''}`}>{t(item.name)}</AccordionTrigger>
                 <AccordionContent className="space-y-1 pl-3">
-                  <Button variant="ghost" size="sm" className="h-auto w-full justify-start whitespace-normal py-2 text-left" onClick={()=>{navigateDetail({});setMode('details')}}>{t('Open details')}</Button>
                   <Accordion type="single" collapsible>
                     {getTaxonomy(item.id,gender).map(family=><AccordionItem key={family.id} value={family.id}>
-                      <AccordionTrigger className="py-2 text-xs">{t(family.label)}</AccordionTrigger>
+                      <AccordionTrigger className="py-2 text-xs" onClick={()=>{navigateDetail({familyId:family.id});setMode('details')}}>{t(family.label)}</AccordionTrigger>
                       <AccordionContent className="space-y-1 border-l pl-3">
-                        <Button variant="ghost" size="sm" className="h-auto w-full justify-start whitespace-normal py-2 text-left" onClick={()=>{navigateDetail({familyId:family.id});setMode('details')}}>{t('Open details')}</Button>
                         {family.subtypes.map(subtype=><Button key={subtype.id} variant="ghost" size="sm" className="h-auto w-full justify-start whitespace-normal py-2 text-left" onClick={()=>{navigateDetail({familyId:family.id,subtypeId:subtype.id});setMode('details')}}>{t(subtype.label)}</Button>)}
                       </AccordionContent>
                     </AccordionItem>)}
