@@ -1,4 +1,4 @@
-# Oncoatlas
+# onco-milver
 
 A React + TypeScript anatomy explorer for learning about cancer by body region.
 
@@ -20,7 +20,7 @@ The initial primitive mannequin has been replaced with the real named meshes fro
 - Z-Anatomy supplies five genuine outer lung lobes and the thyroid as separate locally bundled supplement assets. The base package’s meshes labeled lung contain branching internal structures; those are excluded from rendering and selection in favor of these actual lung surfaces.
 - Separate organ, skeleton, and surface views preserve source geometry. Organ view uses translucent skin and bones to expose the internal anatomy.
 - Selection highlights actual organ meshes. Marker and label locations come from transformed geometry bounds; no manually positioned placeholder organs are used.
-- Hover labels identify visible structures, including structures outside the current cancer catalog. Clicks on mapped organs synchronize the cancer panel. The seven-region list remains keyboard accessible.
+- Hover labels identify visible structures, including structures outside the current cancer catalog. Clicks on mapped organs synchronize the cancer panel. The 17-region list remains keyboard accessible.
 - Missing coverage is explicit: no separately segmented male breast tissue; colon and rectum are grouped into a single large-intestine mesh.
 
 ## Research and source choice
@@ -37,7 +37,7 @@ Anatomy: BodyParts3D © The Database Center for Life Science (CC BY 4.0); female
 
 Base models and catalog: [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Original attribution and model license are preserved in `public/anatomy/` and exposed in the app. The base geometry is unchanged. Package code is MIT.
 
-Lung and thyroid supplements: Z-Anatomy, derived from BodyParts3D © DBCLS, **CC BY-SA 4.0**. Oncoatlas extracts, translates, and (for the female torso) scales these meshes using cross-atlas tracheal and liver landmarks. These registrations are educational adaptations, not clinical alignments. Full provenance and changes are in `public/anatomy/SUPPLEMENT-NOTICE.md`; original upstream notices are retained alongside the two freely downloadable derivative GLBs.
+Lung and thyroid supplements: Z-Anatomy, derived from BodyParts3D © DBCLS, **CC BY-SA 4.0**. onco-milver extracts, translates, and (for the female torso) scales these meshes using cross-atlas tracheal and liver landmarks. These registrations are educational adaptations, not clinical alignments. Full provenance and changes are in `public/anatomy/SUPPLEMENT-NOTICE.md`; original upstream notices are retained alongside the two freely downloadable derivative GLBs.
 
 ### Reproduce supplementary assets
 
@@ -55,10 +55,30 @@ Cancer examples and links reference the [National Cancer Institute](https://www.
 
 ## Stack and structure
 
-React, Vite, TypeScript, Tailwind CSS v4, Radix/shadcn source components, Three.js, React Three Fiber, Drei, and Lucide.
+React, Vite, TypeScript, Tailwind CSS v4, official shadcn/ui components with Radix primitives, Three.js, React Three Fiber, Drei, and Lucide.
 
 - `src/data/anatomy.ts`: local GLB URLs, mesh-to-region mapping, coverage notes, geometry extraction
 - `src/components/BodyViewer.tsx`: actual mesh rendering, layer views, highlights, labels, loading/error states, camera controls
 - `src/data/regions.ts`: selected cancer topics
 - `src/components/ui/`: editable components, configured in `components.json`
 - `scripts/verify-anatomy.mjs`: compressed asset verification
+
+## Interface and palettes
+
+The interface uses the official shadcn/ui Button, Card, Badge, Select, ToggleGroup, Separator, Dialog, Accordion, Alert, Label, and Tooltip components. The header contains the onco-milver wordmark, a simple circle icon, and a gear button that opens a shadcn settings menu with palette choices. Neutral is the default; Blue, Violet, Rose, and Orange are available. Palettes update semantic shadcn theme variables and the 3D organ selection color. Preferences persist locally when browser storage is available.
+
+## Cancer classification map
+
+The right-hand shadcn panel contains a D3 Sankey: body region → cancer group → selected subtype → stage or disease-specific classification. The region selector includes an all-regions overview. Clicking a region, type, or subtype focuses the map; selecting a classification reveals its system, caveats, and NCI sources. Nodes support keyboard activation and hover/focus connection tracing. Zoom controls and an internally scrollable diagram support smaller panels.
+
+Use the header’s float button to detach the panel, drag its header, or resize its edges. The grip button supports arrow-key movement. The dock button restores it on the right. Browser resizing keeps the floating panel within the viewport.
+
+The diagram is a sourced educational taxonomy, not incidence data, a prognosis, or a disease-progression timeline. Link values count classification relationships, and link widths are labeled accordingly. Broad solid-tumor stage groups are distinguished from CNS WHO grades, acute leukemia disease status, CLL Rai stages, CML phases, myeloma ISS stages, and extent/status descriptions. Skin cancers and age-dependent thyroid staging have explicit exceptions. Sources are attached to individual subtypes and classification nodes. Examples are selective and not an exhaustive clinical ontology.
+
+Skin selects the surface view; bones select the skeletal view. Blood/marrow cancers are treated as systemic and have no fabricated point marker or vascular highlight. Lymphatic coverage highlights the available spleen and thymus with a coverage note.
+
+- `src/data/cancer-taxonomy.ts`: sourced subtype and classification examples
+- `src/data/cancer-graph.ts`: Sankey data, relationship counts, filters, and tracing
+- `src/components/CancerPanel.tsx`: draggable/resizable, dockable panel and controls
+- `src/components/CancerSankey.tsx`: SVG visualization and accessible node interactions
+- `npm run verify:cancer-map`: verify every region/gender graph, filters, conservation, layouts, and key classification exceptions

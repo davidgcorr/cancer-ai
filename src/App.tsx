@@ -1,65 +1,128 @@
-import { useMemo, useState } from 'react'
-import { Activity, ArrowRight, ArrowUpRight, BookOpen, Check, ChevronRight, CircleHelp, Cross, Eye, EyeOff, Focus, Info, Layers2, Mars, MousePointer2, MoveUpRight, RotateCcw, Rotate3D, ScanLine, Venus } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
-import { BodyViewer } from '@/components/BodyViewer'
+import { useEffect, useMemo, useState } from 'react'
+import type { ReactNode } from 'react'
+import { ArrowUpRight, Check, Circle, Eye, EyeOff, Focus, Info, Mars, Rotate3D, Settings, Venus } from 'lucide-react'
 import { ATTRIBUTION } from 'open-anatomy-3d'
+import { CancerPanel } from '@/components/CancerPanel'
+import { BodyViewer } from '@/components/BodyViewer'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { Separator } from '@/components/ui/separator'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { palettes, isPalette, savedPalette } from '@/lib/palettes'
+import type { Palette } from '@/lib/palettes'
+import { viewForRegion } from '@/data/anatomy'
 import type { AnatomyView } from '@/data/anatomy'
-import { getCancerUrl, getRegions } from '@/data/regions'
+import { getRegions } from '@/data/regions'
 import type { Gender, RegionId } from '@/data/regions'
 
+function ToolButton({ label, onClick, children, pressed }: { label: string; onClick: () => void; children: ReactNode; pressed?: boolean }) {
+  return <Tooltip><TooltipTrigger asChild><Button variant="outline" size="icon" aria-label={label} aria-pressed={pressed} onClick={onClick}>{children}</Button></TooltipTrigger><TooltipContent>{label}</TooltipContent></Tooltip>
+}
+function Sources() {
+  return <Dialog>
+    <DialogTrigger asChild><Button variant="ghost" size="sm">About &amp; sources</Button></DialogTrigger>
+    <DialogContent className="max-h-[85dvh] overflow-y-auto sm:max-w-xl">
+      <DialogHeader><DialogTitle>About onco-milver</DialogTitle><DialogDescription>Explore anatomy and cancer types by body region.</DialogDescription></DialogHeader>
+      <p className="text-sm leading-relaxed text-muted-foreground">Choose a model and a body region. Drag to rotate, scroll to zoom, and right-drag to pan. Switch between organs, skeleton, and surface views. Select an organ or use the region list to view the associated cancer topics.</p>
+      <Accordion type="multiple" defaultValue={['anatomy']}>
+        <AccordionItem value="anatomy"><AccordionTrigger>Anatomy sources &amp; licenses</AccordionTrigger><AccordionContent className="space-y-4 text-muted-foreground">
+          <p>{ATTRIBUTION}</p>
+          <p>Lung lobes and thyroid: Z-Anatomy, derived from BodyParts3D © The Database Center for Life Science, CC BY-SA 4.0. These meshes are extracted and registered to the base atlas; female geometry is scaled to torso landmarks.</p>
+          <p>The female model fits shared BodyParts3D structures to a MakeHuman surface and adds Human Reference Atlas breast and reproductive organs. It is an adapted educational model, not an independently scanned or clinically validated female atlas. Male breast tissue is not separately segmented. Colon and rectum are grouped in one mesh.</p>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" asChild><a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noreferrer">CC BY 4.0 <ArrowUpRight/></a></Button>
+            <Button variant="outline" size="sm" asChild><a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noreferrer">CC BY-SA 4.0 <ArrowUpRight/></a></Button>
+            <Button variant="outline" size="sm" asChild><a href={`${import.meta.env.BASE_URL}anatomy/ATTRIBUTION.md`} target="_blank" rel="noreferrer">Full attribution <ArrowUpRight/></a></Button>
+            <Button variant="outline" size="sm" asChild><a href={`${import.meta.env.BASE_URL}anatomy/SUPPLEMENT-NOTICE.md`} target="_blank" rel="noreferrer">Adaptation details <ArrowUpRight/></a></Button>
+          </div>
+        </AccordionContent></AccordionItem>
+        <AccordionItem value="content"><AccordionTrigger>Cancer information</AccordionTrigger><AccordionContent className="space-y-3 text-muted-foreground"><p>The cancer map links regions to selected types, subtypes, and stage or classification alternatives. Its link widths count taxonomy relationships, not patients or risk. Stages are alternatives, not a disease progression timeline. Grades, phases, and disease status are labeled separately. The selected cancer examples link to the National Cancer Institute. This is not an exhaustive cancer catalog or an individual risk assessment. Model options represent typical anatomy and do not determine an individual’s organs or cancer risk.</p><Button variant="outline" size="sm" asChild><a href="https://www.cancer.gov/about-cancer" target="_blank" rel="noreferrer">National Cancer Institute <ArrowUpRight/></a></Button></AccordionContent></AccordionItem>
+      </Accordion>
+      <p className="text-xs text-muted-foreground">For education and awareness. Not medical advice.</p>
+    </DialogContent>
+  </Dialog>
+}
+
 function App() {
+  const [palette, setPalette] = useState<Palette>(savedPalette)
   const [view, setView] = useState<AnatomyView>('organs')
   const [gender, setGender] = useState<Gender>('male')
   const [selected, setSelected] = useState<RegionId>('lungs')
   const [resetKey, setResetKey] = useState(0)
   const [markers, setMarkers] = useState(true)
   const [back, setBack] = useState(false)
-  const [help, setHelp] = useState(false)
-  const regions = useMemo(()=>getRegions(gender),[gender])
-  const region = regions.find(r=>r.id===selected)!
-  return <div className="app-shell">
-    <header className="site-header">
-      <a className="brand" href="#"><span className="brand-icon"><Cross size={21} strokeWidth={2.3}/></span>onco<span className="brand-light">atlas</span><span className="brand-dot">®</span></a>
-      <nav aria-label="Main navigation"><span className="nav-active"><ScanLine size={15}/> Body explorer</span><a href="https://www.cancer.gov/types" target="_blank" rel="noreferrer">Cancer library <ArrowUpRight size={13}/></a></nav>
-      <Button variant="ghost" size="sm" onClick={()=>setHelp(!help)} aria-expanded={help}><CircleHelp size={16}/><span className="about-text">About the explorer</span></Button>
-    </header>
-    <main>
-      <section className="page-heading"><div><div className="eyebrow"><span/> THE HUMAN BODY, BETTER UNDERSTOOD</div><h1>Understanding starts here.</h1><p>Explore the body. Discover how cancer can affect each part.</p></div><span className="edition"><BookOpen size={15}/> An interactive learning experience</span></section>
-      {help && <div className="help-panel" role="status"><Info size={18}/><div>Choose a body model, then select a region on the figure or in the list. Drag to rotate and scroll to zoom. The model uses BodyParts3D anatomy and selected cancer examples. Switch between organs, skeleton, and surface views. Hover over a visible structure to see its name. Structures missing from the dataset are noted. Model options represent typical anatomy and do not determine an individual’s organs or cancer risk.</div><Button size="sm" variant="ghost" onClick={()=>setHelp(false)}>Close</Button></div>}
-      <div className="explorer-grid">
-        <aside className="control-panel">
-          <div className="section-number">01 <span>CHOOSE A BODY MODEL</span></div><h2>A view of you.</h2><p className="panel-description">Select a model to begin exploring.</p>
-          <ToggleGroup type="single" value={gender} onValueChange={v=>{if(v){setGender(v as Gender);setBack(false);setResetKey(k=>k+1)}}} aria-label="Gender"><ToggleGroupItem value="male" aria-label="Male"><Mars size={17}/> Male</ToggleGroupItem><ToggleGroupItem value="female" aria-label="Female"><Venus size={17}/> Female</ToggleGroupItem></ToggleGroup>
-          <div className="anatomy-note"><Info size={13}/><span>Models show typical male / female anatomy.</span></div>
-          <div className="panel-divider"/>
-          <div className="region-heading"><div className="section-number">02 <span>EXPLORE A REGION</span></div><span className="count">07</span></div>
-          <p className="region-description">Follow your curiosity.</p>
-          <div className="region-list" aria-label="Body regions">{regions.map((r,i)=><button key={r.id} className={`region-row ${selected===r.id?'selected':''}`} onClick={()=>{setSelected(r.id);setView('organs')}} aria-pressed={selected===r.id}><span className="region-index">{String(i+1).padStart(2,'0')}</span><span>{r.name}</span>{selected===r.id ? <span className="selected-indicator"/> : <ChevronRight size={14}/>}</button>)}</div>
-          <div className="sidebar-bottom"><span className="small-orbit"><MousePointer2 size={16}/></span><p>You can also select a marker<br/>directly on the body.</p></div>
-        </aside>
-        <section className="viewer-panel" aria-label="3D anatomy explorer">
-          <div className="viewer-top"><span><span className="live-dot"/> INTERACTIVE ANATOMY</span><span className="model-badge">{gender==='male'?'Male':'Female'} model <Check size={12}/></span></div>
-          <div className="viewer-canvas"><BodyViewer gender={gender} regions={regions} selected={selected} onSelect={id=>{setSelected(id);setView('organs')}} view={view} resetKey={resetKey} markers={markers} back={back}/></div>
-          <div className="anatomy-view-switch" role="group" aria-label="Anatomy layers">{(['organs','skeleton','surface'] as const).map(layer=><button key={layer} onClick={()=>setView(layer)} aria-pressed={view===layer}>{layer==='organs'?'Organs':layer==='skeleton'?'Skeleton':'Surface'}</button>)}</div>
-          <div className="viewer-side-label">HUMAN ANATOMY <span> / </span> 3D EXPLORER</div>
-          <div className="viewer-tools"><Button size="icon" variant="outline" title="Reset view" aria-label="Reset view" onClick={()=>{setBack(false);setResetKey(k=>k+1)}}><Focus size={17}/></Button><Button size="icon" variant="outline" title={markers?'Hide markers':'Show markers'} aria-label={markers?'Hide markers':'Show markers'} aria-pressed={markers} onClick={()=>setMarkers(!markers)}>{markers?<Eye size={17}/>:<EyeOff size={17}/>}</Button><Button size="icon" variant="outline" title="Rotate to opposite view" aria-label="Rotate to opposite view" onClick={()=>{setBack(!back);setResetKey(k=>k+1)}}><Rotate3D size={17}/></Button></div>
-          <div className="viewer-bottom"><span><RotateCcw size={13}/> Drag to rotate <span className="hint-dot">·</span> Scroll to zoom</span><button className="front-button" onClick={()=>{setBack(!back);setResetKey(k=>k+1)}}>{back?'BACK VIEW':'FRONT VIEW'} <Rotate3D size={13}/></button></div>
-        </section>
-        <aside className="detail-panel" aria-live="polite">
-          <div className="detail-eyebrow"><span className="detail-dot"/> REGION IN FOCUS</div>
-          <div className="organ-illustration"><Activity size={72} strokeWidth={.85}/><span className="organ-orbit orbit-one"/><span className="organ-orbit orbit-two"/><span className="organ-spark"/></div>
-          <span className="system-label">{region.system}</span><h2>{region.name}</h2><p className="detail-description">{region.description}</p>
-          <div className="cancer-heading"><span>Associated cancer types</span><span>{String(region.types.length).padStart(2,'0')}</span></div>
-          <div className="cancer-list">{region.types.map((type,i)=><a href={getCancerUrl(type, region.source)} target="_blank" rel="noreferrer" key={type}><span className="cancer-icon"><Layers2 size={15}/></span><span><small>0{i+1}</small>{type}</span><ArrowUpRight size={15}/></a>)}</div>
-          <a className="learn-link" href={`https://www.cancer.gov/types/${region.source}`} target="_blank" rel="noreferrer">Explore this cancer topic <ArrowRight size={16}/></a>
-          <div className="source-note"><BookOpen size={14}/><p>Learn more from the<br/><a href="https://www.cancer.gov/types" target="_blank" rel="noreferrer">National Cancer Institute <ArrowUpRight size={11}/></a></p></div>
-        </aside>
-      </div>
-      <details className="model-credits"><summary>3D anatomy sources &amp; licenses</summary><p>{ATTRIBUTION}</p><p>Lung lobes and thyroid: Z-Anatomy, derived from BodyParts3D © The Database Center for Life Science, CC BY-SA 4.0. Extracted and registered to the base atlas; female geometry is scaled to torso landmarks. <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noreferrer">ShareAlike license</a> · <a href={`${import.meta.env.BASE_URL}anatomy/SUPPLEMENT-NOTICE.md`}>Source and adaptation details</a></p><p>The female model fits shared BodyParts3D structures to a MakeHuman surface and adds Human Reference Atlas reproductive and breast organs. It is an adapted educational model, not an independently scanned or clinically validated female atlas. The base geometry is unchanged. Supplementary lung and thyroid meshes are registered adaptations for visualization, not patient-specific anatomy.</p><p><a href="https://github.com/MervinR07/open-anatomy-3d/blob/main/ATTRIBUTION.md" target="_blank" rel="noreferrer">Sources and modifications</a> · <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noreferrer">CC BY 4.0 license</a> · <a href={`${import.meta.env.BASE_URL}anatomy/ATTRIBUTION.md`}>Full attribution</a></p></details>
-      <section className="below-explorer"><div className="explore-prompt"><span className="prompt-icon"><MoveUpRight size={20}/></span><div><strong>A little exploration. A better understanding.</strong><p>Start with a region. Every part has a story to tell.</p></div></div><span className="education-note"><Info size={15}/> For education and awareness. Not medical advice.</span></section>
-    </main>
-    <footer><span>© {new Date().getFullYear()} Oncoatlas</span><span>Made for understanding.</span><a href="https://www.cancer.gov/about-cancer" target="_blank" rel="noreferrer">Trusted resources <ArrowUpRight size={12}/></a></footer>
-  </div>
+  useEffect(() => {
+    document.documentElement.dataset.palette = palette
+    try { localStorage.setItem('onco-milver-palette', palette) } catch { /* Preferences are optional when storage is unavailable. */ }
+  }, [palette])
+  const regions = useMemo(() => getRegions(gender), [gender])
+  const region = regions.find(r => r.id === selected)!
+  const selectRegion = (id: RegionId) => { setSelected(id); setView(viewForRegion(id)) }
+  const reset = () => { setBack(false); setResetKey(k => k + 1) }
+  return <TooltipProvider>
+    <div className="min-h-dvh bg-background text-foreground">
+      <header className="border-b">
+        <div className="mx-auto flex h-16 max-w-[1600px] items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center gap-2.5"><Circle className="size-5" strokeWidth={1.75} aria-hidden="true"/><span className="text-base font-semibold tracking-tight">onco-milver</span></div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" aria-label="Settings" title="Settings"><Settings className="size-4"/></Button></DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuLabel>Settings</DropdownMenuLabel>
+              <DropdownMenuSeparator/>
+              <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">Color palette</DropdownMenuLabel>
+              <DropdownMenuRadioGroup value={palette} onValueChange={value=>{if(isPalette(value))setPalette(value)}} aria-label="Color palette">
+                {Object.entries(palettes).map(([key,item])=><DropdownMenuRadioItem value={key} key={key}><Circle className="size-3 fill-current" style={{color:item.color}} aria-hidden="true"/>{item.label}</DropdownMenuRadioItem>)}
+              </DropdownMenuRadioGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </header>
+      <main className="mx-auto max-w-[1600px] space-y-6 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+        <div className="space-y-1.5"><h1 className="text-2xl font-semibold tracking-tight">Body explorer</h1><p className="text-sm text-muted-foreground">Select a region to explore cancer types, subtypes, and disease-specific staging.</p></div>
+        <div className="grid items-start gap-4 md:grid-cols-[220px_minmax(0,1fr)] xl:grid-cols-[200px_minmax(300px,1fr)_minmax(440px,1.25fr)]">
+          <Card className="gap-5 shadow-none">
+            <CardHeader><CardTitle>Body model</CardTitle><CardDescription>Select the anatomy to display.</CardDescription></CardHeader>
+            <CardContent className="space-y-5">
+              <ToggleGroup type="single" variant="outline" value={gender} className="w-full" onValueChange={value=>{if(value){setGender(value as Gender);reset()}}} aria-label="Gender">
+                <ToggleGroupItem value="male" className="flex-1" aria-label="Male"><Mars/>Male</ToggleGroupItem>
+                <ToggleGroupItem value="female" className="flex-1" aria-label="Female"><Venus/>Female</ToggleGroupItem>
+              </ToggleGroup>
+              <Separator/>
+              <div className="space-y-3"><div className="flex items-center justify-between"><h2 className="text-sm font-medium">Body regions</h2><Badge variant="secondary">{regions.length}</Badge></div>
+                <div className="flex flex-wrap gap-1 md:max-h-[468px] md:flex-col md:flex-nowrap md:overflow-y-auto" role="group" aria-label="Body regions">{regions.map(r=><Button key={r.id} variant={selected===r.id?'secondary':'ghost'} className={`shrink-0 justify-between md:w-full ${selected===r.id?'text-primary':''}`} onClick={()=>selectRegion(r.id)} aria-pressed={selected===r.id}>{r.name}{selected===r.id&&<Check className="size-4"/>}</Button>)}</div>
+              </div>
+            </CardContent>
+            <CardFooter><p className="text-xs leading-relaxed text-muted-foreground">Select a region here or directly on the model.</p></CardFooter>
+          </Card>
+          <Card className="gap-0 overflow-hidden py-0 shadow-none">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b p-3 sm:p-4">
+              <ToggleGroup type="single" value={view} variant="outline" aria-label="Anatomy view" onValueChange={value=>{if(value)setView(value as AnatomyView)}}>
+                <ToggleGroupItem value="organs" aria-label="Organs view">Organs</ToggleGroupItem><ToggleGroupItem value="skeleton" aria-label="Skeleton view">Skeleton</ToggleGroupItem><ToggleGroupItem value="surface" aria-label="Surface view">Surface</ToggleGroupItem>
+              </ToggleGroup>
+              <Badge variant="outline">{gender==='male'?'Male':'Female'}</Badge>
+            </div>
+            <div className="relative h-[520px] bg-muted/40 sm:h-[620px]">
+              <BodyViewer gender={gender} regions={regions} selected={selected} onSelect={selectRegion} view={view} resetKey={resetKey} markers={markers} back={back} highlightColor={palettes[palette].color}/>
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t p-3">
+              <p className="text-xs text-muted-foreground">Drag to rotate · Scroll to zoom</p>
+              <div className="flex items-center gap-2">
+                <ToolButton label="Reset view" onClick={reset}><Focus/></ToolButton>
+                <ToolButton label={markers?'Hide labels and markers':'Show labels and markers'} pressed={markers} onClick={()=>setMarkers(!markers)}>{markers?<Eye/>:<EyeOff/>}</ToolButton>
+                <Tooltip><TooltipTrigger asChild><Button variant="outline" size="sm" onClick={()=>{setBack(!back);setResetKey(k=>k+1)}}><Rotate3D/>{back?'Back':'Front'}</Button></TooltipTrigger><TooltipContent>Switch front / back view</TooltipContent></Tooltip>
+              </div>
+            </div>
+          </Card>
+          <CancerPanel region={region} regions={regions} gender={gender} color={palettes[palette].color} onRegionChange={selectRegion}/>
+        </div>
+        <footer className="flex flex-wrap items-center justify-between gap-2 border-t pt-4"><p className="flex items-center gap-2 text-xs text-muted-foreground"><Info className="size-3.5 shrink-0"/>For education and awareness. Not medical advice.</p><Sources/></footer>
+      </main>
+    </div>
+  </TooltipProvider>
 }
 export default App
