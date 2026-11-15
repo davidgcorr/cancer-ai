@@ -1,7 +1,7 @@
 import { useI18n } from '@/lib/i18n/provider'
 import { useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
-import { ArrowUpRight, Circle, Eye, EyeOff, Focus, Info, Mars, Rotate3D, Settings, Venus } from 'lucide-react'
+import { ArrowUpRight, Circle, Eye, EyeOff, Focus, Info, Mars, Maximize2, Minimize2, Rotate3D, Settings, Venus } from 'lucide-react'
 import { ATTRIBUTION } from 'open-anatomy-3d'
 import { CancerPanel } from '@/components/CancerPanel'
 import { BodyViewer } from '@/components/BodyViewer'
@@ -59,6 +59,7 @@ function App() {
   const [resetKey, setResetKey] = useState(0)
   const [markers, setMarkers] = useState(true)
   const [back, setBack] = useState(false)
+  const [modelMinimized, setModelMinimized] = useState(false)
   useEffect(() => {
     document.documentElement.dataset.palette = palette
     try { localStorage.setItem('onco-milver-palette', palette) } catch { /* Preferences are optional when storage is unavailable. */ }
@@ -92,16 +93,26 @@ function App() {
       </header>
       <main className="mx-auto max-w-[1600px] space-y-6 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
         <h1 className="text-2xl font-semibold tracking-tight">Onco explorer</h1>
-        <div className="grid items-start gap-4 lg:grid-cols-[minmax(300px,1fr)_minmax(440px,1.25fr)]">
+        <div className={`grid items-start gap-4 ${modelMinimized?'grid-cols-1':'lg:grid-cols-[minmax(300px,1fr)_minmax(440px,1.25fr)]'}`}>
           <Card className="gap-0 overflow-hidden py-0 shadow-none">
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b p-3 sm:p-4">
-              <ToggleGroup type="single" value={view} variant="outline" aria-label={t("Anatomy view")} onValueChange={value=>{if(value)setView(value as AnatomyView)}}>
-                <ToggleGroupItem value="organs" aria-label={t("Organs view")}>{t("Organs")}</ToggleGroupItem><ToggleGroupItem value="skeleton" aria-label={t("Skeleton view")}>{t("Skeleton")}</ToggleGroupItem><ToggleGroupItem value="surface" aria-label={t("Surface view")}>{t("Surface")}</ToggleGroupItem>
-              </ToggleGroup>
+            <div className="flex flex-wrap items-center justify-between gap-3 p-3">
+              <div className="flex items-center gap-3"><span className="text-sm font-medium">{t("Body model")}</span>
               <ToggleGroup type="single" variant="outline" value={gender} className="shrink-0" onValueChange={value=>{if(value){setGender(value as Gender);reset()}}} aria-label={t("Gender")}>
                 <ToggleGroupItem value="male" className="min-w-0 flex-1 gap-2 px-2" aria-label={t("Male")} title={t("Male")}><Mars aria-hidden="true" className="size-4 shrink-0"/><span aria-hidden="true">{t("Male").charAt(0).toLocaleUpperCase(language)}</span></ToggleGroupItem>
                 <ToggleGroupItem value="female" className="min-w-0 flex-1 gap-2 px-2" aria-label={t("Female")} title={t("Female")}><Venus aria-hidden="true" className="size-4 shrink-0"/><span aria-hidden="true">{t("Female").charAt(0).toLocaleUpperCase(language)}</span></ToggleGroupItem>
               </ToggleGroup>
+              </div>
+              <Button variant="ghost" size="sm" aria-expanded={!modelMinimized} aria-controls="anatomy-panel-content" onClick={()=>setModelMinimized(value=>!value)}>
+                {modelMinimized?<Maximize2 aria-hidden="true"/>:<Minimize2 aria-hidden="true"/>}{t(modelMinimized?'Restore 3D model':'Minimize 3D model')}
+              </Button>
+            </div>
+            <div id="anatomy-panel-content" hidden={modelMinimized} className="border-t">{!modelMinimized&&<>
+
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b p-3 sm:p-4">
+              <ToggleGroup type="single" value={view} variant="outline" aria-label={t("Anatomy view")} onValueChange={value=>{if(value)setView(value as AnatomyView)}}>
+                <ToggleGroupItem value="organs" aria-label={t("Organs view")}>{t("Organs")}</ToggleGroupItem><ToggleGroupItem value="skeleton" aria-label={t("Skeleton view")}>{t("Skeleton")}</ToggleGroupItem><ToggleGroupItem value="surface" aria-label={t("Surface view")}>{t("Surface")}</ToggleGroupItem>
+              </ToggleGroup>
+
             </div>
             <div className="relative h-[520px] bg-muted/40 sm:h-[620px]">
               <BodyViewer gender={gender} regions={regions} selected={selected} onSelect={selectRegion} view={view} resetKey={resetKey} markers={markers} back={back} highlightColor={palettes[palette].color}/>
@@ -113,6 +124,7 @@ function App() {
                 <Tooltip><TooltipTrigger asChild><Button variant="outline" size="sm" onClick={()=>{setBack(!back);setResetKey(k=>k+1)}}><Rotate3D/>{t(back?'Back':'Front')}</Button></TooltipTrigger><TooltipContent>{t("Switch front / back view")}</TooltipContent></Tooltip>
               </div>
             </div>
+            </>}</div>
           </Card>
           <CancerPanel region={region} regions={regions} gender={gender} color={palettes[palette].color} onRegionChange={selectRegion}/>
         </div>

@@ -1448,5 +1448,15 @@ export const clinicalMessages: Record<string, [string,string,string]> = {
     "Los porcentajes utilizan la población y el denominador de la fuente indicada. Las estimaciones de distintas cohortes no deben sumarse ni interpretarse como riesgo personal.",
     "Les pourcentages utilisent la population et le dénominateur de la source indiquée. Les estimations de cohortes différentes ne doivent pas être additionnées ni interprétées comme un risque individuel.",
     "Die Prozentwerte beziehen sich auf die angegebene Quellpopulation und Bezugsgröße. Schätzungen aus unterschiedlichen Kohorten dürfen weder addiert noch als persönliches Risiko interpretiert werden."
+  ],
+  "Minimize 3D model": [
+    "Minimizar modelo 3D",
+    "Réduire le modèle 3D",
+    "3D-Modell minimieren"
+  ],
+  "Restore 3D model": [
+    "Restaurar modelo 3D",
+    "Restaurer le modèle 3D",
+    "3D-Modell wiederherstellen"
   ]
 }
