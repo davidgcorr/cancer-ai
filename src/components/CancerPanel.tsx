@@ -69,7 +69,8 @@ export function CancerPanel({region,regions,gender,color,onRegionChange,navigati
   }
   const clear=()=>{setFilter({region:region.id,gender});setInspection(undefined)}
   const inspect=(node:FlowNode)=>{
-    if(overview) {setOverview(false);onRegionChange(node.regionId)}
+    onRegionChange(node.regionId)
+    if(overview)setOverview(false)
     const targetRegion=overview?node.regionId:region.id
     setInspection({region:targetRegion,gender,node})
     const candidates=pathsForFlowNode(getTaxonomy(targetRegion,gender),node)
@@ -81,6 +82,7 @@ export function CancerPanel({region,regions,gender,color,onRegionChange,navigati
     if(node.kind==='subtype')setFilter({region:targetRegion,gender,family:node.familyId,subtype:node.subtypeId})
   }
   const navigateDetail=(path:DetailPath)=>{
+    onRegionChange(region.id)
     onPathChange(path)
     setDetailSelection({region:region.id,gender,path})
     setFilter({region:region.id,gender,family:path.familyId,subtype:path.subtypeId})

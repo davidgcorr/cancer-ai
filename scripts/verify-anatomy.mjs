@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs'
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js'
+import { anatomyVisibility } from '../src/data/anatomy-visibility.ts'
 import { ANATOMY_BY_KEY } from 'open-anatomy-3d'
 
 // Decode the actual compressed assets: validate mesh identity, geometry, scale,
@@ -30,6 +31,20 @@ for (const sex of ['male', 'female']) {
     keys.set(named.name, (keys.get(named.name) ?? new THREE.Box3()).union(box))
   })
   for (const key of ['skin','skull','brain','lung_l','lung_r','liver','colon','heart','femur_l','hand_l','foot_r']) assert.ok(keys.has(key), `Missing ${key} in ${sex}`)
+  for(const view of ['organs','surface','skeleton']) {
+    const skin=anatomyVisibility('skin','skin',view,'skin')
+    assert.ok(skin.visible&&!skin.ghost&&skin.opacity===1, `${sex}: selected skin must be opaque in ${view}`)
+    const bones=[...keys.keys()].filter(key=>ANATOMY_BY_KEY[key].system==='skeleton')
+    assert.ok(bones.length>20, `${sex}: actual skeleton must be present`)
+    for(const key of bones) {
+      const bone=anatomyVisibility(key,'skeleton',view,'bones')
+      assert.ok(bone.visible&&!bone.ghost&&bone.opacity===1, `${sex}: selected ${key} must be opaque in ${view}`)
+    }
+    const coveringSkin=anatomyVisibility('skin','skin',view,'bones')
+    assert.ok(!coveringSkin.visible||coveringSkin.opacity<.1, `${sex}: skin must not obscure selected bones`)
+  }
+  const organSkin=anatomyVisibility('skin','skin','organs','lungs')
+  assert.ok(organSkin.ghost&&organSkin.opacity<.1, 'Skin must still allow viewing selected internal organs')
   const body = keys.get('skin')
   const height = body.max.y - body.min.y
   assert.ok(height > 1.4 && height < 2.1, `Unexpected model height: ${height}`)

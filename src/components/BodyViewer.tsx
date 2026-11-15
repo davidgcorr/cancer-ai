@@ -10,6 +10,7 @@ import { Canvas } from '@react-three/fiber'
 import { Html, OrbitControls, ContactShadows, useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
 import { coverageNote, extractAnatomyMeshes, MODEL_URLS, SUPPLEMENT_URLS, STRUCTURES, regionForMesh, regionMeshes } from '@/data/anatomy'
+import { anatomyVisibility } from '@/data/anatomy-visibility'
 import type { AnatomyView } from '@/data/anatomy'
 import type { Gender, Region, RegionId } from '@/data/regions'
 
@@ -40,14 +41,11 @@ function AnatomicalBody({ gender, selected, onSelect, markers, regions, view, hi
       if (mesh.key === 'lung_l' || mesh.key === 'lung_r') return null // Superseded by the actual Z-Anatomy lung surfaces.
       const structure = STRUCTURES[mesh.key]
       const system = structure.system
-      const active = selectedKeys.includes(mesh.key) && (view === 'organs' || (selected === 'skin' && view === 'surface') || (selected === 'bones' && view === 'skeleton'))
-      const skin = system === 'skin'
-      const skeleton = system === 'skeleton'
-      const visible = view === 'surface' ? skin : view === 'skeleton' ? skeleton : skin || skeleton || system === 'organs'
+      const {visible,ghost,opacity,selectedTissue}=anatomyVisibility(mesh.key,system,view,selected)
       if (!visible) return null
-      const ghost = view === 'organs' && (skin || skeleton)
-      const opacity = ghost ? skin ? .045 : ['skull', 'mandible', 'ribs_l', 'ribs_r', 'sternum', 'pelvis'].includes(mesh.key) ? .12 : .4 : 1
-      const color = active ? highlightColor : skin ? '#c9b19b' : structure.color
+      const active=selectedTissue||(selectedKeys.includes(mesh.key)&&view==='organs')
+      // Retain recognizable skin and bone colors; the palette supplies a subtle highlight.
+      const color=selectedTissue?(system==='skin'?'#c9b19b':structure.color):active?highlightColor:system==='skin'?'#c9b19b':structure.color
       return <mesh key={`${mesh.key}-${index}`} geometry={mesh.geometry} matrix={mesh.matrix} matrixAutoUpdate={false}
         raycast={ghost ? ignoreRaycast : undefined}
         onPointerOver={e => { e.stopPropagation(); setHover(mesh.key) }}
@@ -55,7 +53,7 @@ function AnatomicalBody({ gender, selected, onSelect, markers, regions, view, hi
         onClick={e => { e.stopPropagation(); const region = regionForMesh(mesh.key, gender); if (region) onSelect(region) }}>
         <meshStandardMaterial color={hover === mesh.key ? highlightColor : color} roughness={.62} metalness={0}
           transparent={opacity < 1} opacity={opacity} depthWrite={!ghost} side={THREE.DoubleSide}
-          emissive={active ? highlightColor : '#000000'} emissiveIntensity={.15} />
+          emissive={active ? highlightColor : '#000000'} emissiveIntensity={selectedTissue ? .08 : .15} />
       </mesh>
     })}
     {markers && view === 'organs' && regions.map(region => {
