@@ -99,8 +99,8 @@ function App() {
             <CardHeader><CardTitle>{t("Body model")}</CardTitle><CardDescription>{t("Select the anatomy to display.")}</CardDescription></CardHeader>
             <CardContent className="space-y-5">
               <ToggleGroup type="single" variant="outline" value={gender} className="w-full" onValueChange={value=>{if(value){setGender(value as Gender);reset()}}} aria-label={t("Gender")}>
-                <ToggleGroupItem value="male" className="flex-1" aria-label={t("Male")}><Mars/>{t("Male")}</ToggleGroupItem>
-                <ToggleGroupItem value="female" className="flex-1" aria-label={t("Female")}><Venus/>{t("Female")}</ToggleGroupItem>
+                <ToggleGroupItem value="male" className="min-w-0 flex-1 gap-2 px-2" aria-label={t("Male")} title={t("Male")}><Mars aria-hidden="true" className="size-4 shrink-0"/><span aria-hidden="true">{t("Male").charAt(0).toLocaleUpperCase(language)}</span></ToggleGroupItem>
+                <ToggleGroupItem value="female" className="min-w-0 flex-1 gap-2 px-2" aria-label={t("Female")} title={t("Female")}><Venus aria-hidden="true" className="size-4 shrink-0"/><span aria-hidden="true">{t("Female").charAt(0).toLocaleUpperCase(language)}</span></ToggleGroupItem>
               </ToggleGroup>
               <Separator/>
               <div className="space-y-3"><div className="flex items-center justify-between"><h2 className="text-sm font-medium">{t("Body regions")}</h2><Badge variant="secondary">{regions.length}</Badge></div>
@@ -114,7 +114,7 @@ function App() {
               <ToggleGroup type="single" value={view} variant="outline" aria-label={t("Anatomy view")} onValueChange={value=>{if(value)setView(value as AnatomyView)}}>
                 <ToggleGroupItem value="organs" aria-label={t("Organs view")}>{t("Organs")}</ToggleGroupItem><ToggleGroupItem value="skeleton" aria-label={t("Skeleton view")}>{t("Skeleton")}</ToggleGroupItem><ToggleGroupItem value="surface" aria-label={t("Surface view")}>{t("Surface")}</ToggleGroupItem>
               </ToggleGroup>
-              <Badge variant="outline">{t(gender==='male'?'Male':'Female')}</Badge>
+              <Badge variant="outline" aria-label={t(gender==='male'?'Male':'Female')} title={t(gender==='male'?'Male':'Female')}>{gender==='male'?<Mars aria-hidden="true"/>:<Venus aria-hidden="true"/>}<span aria-hidden="true">{t(gender==='male'?'Male':'Female').charAt(0).toLocaleUpperCase(language)}</span></Badge>
             </div>
             <div className="relative h-[520px] bg-muted/40 sm:h-[620px]">
               <BodyViewer gender={gender} regions={regions} selected={selected} onSelect={selectRegion} view={view} resetKey={resetKey} markers={markers} back={back} highlightColor={palettes[palette].color}/>
