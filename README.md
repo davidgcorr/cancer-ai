@@ -10,6 +10,16 @@ Built with React, TypeScript, Three.js, Tailwind CSS, and shadcn/ui. Available i
 
 ## Screenshots
 
+English anatomy and cancer-map overview:
+
+![English lung anatomy explorer with CAD navigation and cancer Sankey diagram](docs/screenshots/english-lung-overview.png)
+
+Breast cancer subtype navigation and treatment cards:
+
+![Breast cancer family navigation with histologic subtypes](docs/screenshots/breast-cancer-subtypes.png)
+
+![Invasive ductal carcinoma details with treatment cards and stage navigation](docs/screenshots/breast-cancer-treatment-cards.png)
+
 Skin anatomy and settings, including language and palette selection:
 
 ![Skin model, skin cancer Sankey diagram, and Spanish language settings](docs/screenshots/skin-and-settings.png)
@@ -39,7 +49,20 @@ Anatomical close-up:
 
 </details>
 
-[All original screenshots and capture details](docs/screenshots/README.md)
+[Original screenshots and capture details](docs/screenshots/README.md) · [Feature screenshot gallery](docs/screenshots/features/README.md)
+
+## Refresh feature screenshots
+
+The [feature gallery](docs/screenshots/features/README.md) covers anatomy, skin and bone visibility, gender selection, subtype frequency, treatment cards, report export, the downloaded HTML report, minimized/floating panels, settings, and mobile layout.
+
+With Node.js 24 and Google Chrome installed:
+
+```sh
+npm ci
+npm run screenshots
+```
+
+The command builds the app, starts an isolated local preview on port 4174, captures 12 real browser screenshots, and writes them with a manifest to `docs/screenshots/features/`. It does not use your personal browser profile. Use `SCREENSHOT_URL=https://oncomilver.davidgc.com npm run screenshots` to capture the live site, or `SCREENSHOT_BROWSER=chromium` with a Playwright-installed Chromium browser. Review captures before committing them. User-provided originals remain in `docs/screenshots/`.
 
 ## Run locally
 

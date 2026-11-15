@@ -1,6 +1,6 @@
 # Project screenshots
 
-Six original screenshots provided by the project author, captured on 2026-11-15. Files are preserved without resizing or editing. Earlier captures show previous interface versions.
+Nine original screenshots provided by the project author, captured on 2026-11-15. Files are preserved without resizing or editing. Earlier captures show previous interface versions.
 
 | File | Capture time | Content |
 |---|---|---|
@@ -10,5 +10,8 @@ Six original screenshots provided by the project author, captured on 2026-11-15.
 | [leukemia-details.png](leukemia-details.png) | 10:49:27 | An earlier detail view for leukemia with blood and marrow context |
 | [floating-leukemia-map.png](floating-leukemia-map.png) | 10:44:34 | An earlier floating panel showing leukemia classifications |
 | [anatomy-close-up.png](anatomy-close-up.png) | 10:43:37 | An earlier close-up of abdominal anatomy |
+| [english-lung-overview.png](english-lung-overview.png) | 11:41:47 | English lung anatomy and cancer-map overview |
+| [breast-cancer-subtypes.png](breast-cancer-subtypes.png) | 11:42:08 | Breast cancer family navigation and histologic subtypes |
+| [breast-cancer-treatment-cards.png](breast-cancer-treatment-cards.png) | 11:42:21 | Invasive ductal carcinoma breadcrumbs, treatment cards, and stage navigation |
 
 The anatomical models visible in these screenshots retain their separate [attribution](../../public/anatomy/ATTRIBUTION.md) and [supplement license notices](../../public/anatomy/SUPPLEMENT-NOTICE.md).

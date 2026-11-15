@@ -1,0 +1,58 @@
+{
+  "capturedOn": "2026-11-15",
+  "source": "http://127.0.0.1:4174",
+  "desktopViewport": {
+    "width": 1600,
+    "height": 1080
+  },
+  "captures": [
+    {
+      "file": "01-anatomy-and-cancer-map.png",
+      "description": "Male anatomy, CAD-style region tree, and lung cancer Sankey diagram"
+    },
+    {
+      "file": "02-skin-cancer.png",
+      "description": "Opaque skin surface with skin cancer classifications"
+    },
+    {
+      "file": "03-bone-cancer.png",
+      "description": "Visible skeleton with bone sarcoma classifications"
+    },
+    {
+      "file": "04-female-anatomy.png",
+      "description": "Female anatomical model and synchronized lung cancer map"
+    },
+    {
+      "file": "05-subtype-frequency.png",
+      "description": "Subtype breadcrumbs and a sourced frequency estimate with its denominator"
+    },
+    {
+      "file": "06-treatment-cards.png",
+      "description": "Educational treatment cards, source links, and disease classifications"
+    },
+    {
+      "file": "07-report-export.png",
+      "description": "Report export dialog with branch scope and HTML/PNG download options"
+    },
+    {
+      "file": "08-exported-html-report.png",
+      "description": "Actual downloaded standalone HTML report with classification diagram, frequency, treatments, and references"
+    },
+    {
+      "file": "09-minimized-anatomy.png",
+      "description": "Centered cancer map with the anatomy panel minimized"
+    },
+    {
+      "file": "10-floating-cancer-map.png",
+      "description": "Movable, resizable cancer map panel"
+    },
+    {
+      "file": "11-spanish-and-palette.png",
+      "description": "Spanish translation and selectable palette settings"
+    },
+    {
+      "file": "12-mobile-explorer.png",
+      "description": "Mobile anatomy viewer with collapsed CAD navigation, icon controls, and translated cancer map"
+    }
+  ]
+}
