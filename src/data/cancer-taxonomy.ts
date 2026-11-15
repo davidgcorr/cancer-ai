@@ -1,7 +1,10 @@
+import { expandTaxonomy } from './catalog-expansion.ts'
+import { frequencyFor, treatmentFor } from './cancer-evidence.ts'
+import type { Frequency, Treatment } from './cancer-evidence.ts'
 import type { Gender, RegionId } from './regions'
 export type Classification = { system: string; labels: string[]; note: string }
-export type CancerSubtype = { id: string; label: string; classification: Classification; source: string }
-export type CancerFamily = { id: string; label: string; subtypes: CancerSubtype[] }
+export type CancerSubtype = { id: string; label: string; classification: Classification; source: string; frequency?: Frequency; treatment?: Treatment }
+export type CancerFamily = { id: string; label: string; subtypes: CancerSubtype[]; frequency?: Frequency }
 const nci = (path: string) => `https://www.cancer.gov/types/${path}`
 const tnm: Classification = { system: 'Broad stage groups', labels: ['Stage I','Stage II','Stage III','Stage IV'], note: 'Selected broad stage groups, not a staging calculator. Clinical and pathological staging, biomarkers, and substages require disease-specific assessment.' }
 const zero: Classification = { ...tnm, labels: ['Stage 0', ...tnm.labels] }
@@ -9,7 +12,7 @@ const extent: Classification = { system: 'Extent / disease status', labels: ['Lo
 const noStage: Classification = { system: 'Disease status (not stage)', labels: ['Newly diagnosed','In remission','Recurrent / refractory'], note: 'Acute leukemias do not use a standard stage I–IV system. These are disease-status categories, not a required sequence of progression.' }
 const sub = (id: string, label: string, source: string, classification = tnm): CancerSubtype => ({ id,label,source:nci(source),classification })
 const family = (id: string, label: string, ...subtypes: CancerSubtype[]): CancerFamily => ({ id,label,subtypes })
-export function getTaxonomy(id: RegionId, gender: Gender): CancerFamily[] {
+function getBaseTaxonomy(id: RegionId, gender: Gender): CancerFamily[] {
   switch (id) {
     case 'brain': return [family('glioma','Glioma',
       sub('astrocytoma','Astrocytoma, IDH-mutant','brain/patient/adult-brain-treatment-pdq',{system:'CNS WHO grade (not stage)',labels:['Grade 2','Grade 3','Grade 4'],note:'CNS WHO grade describes tumor biology; it is not a measure of spread or a TNM cancer stage.'}),
@@ -35,4 +38,11 @@ export function getTaxonomy(id: RegionId, gender: Gender): CancerFamily[] {
     case 'blood': return [family('leukemia','Leukemia',sub('all','Acute lymphoblastic leukemia (ALL)','leukemia/patient/adult-all-treatment-pdq',noStage),sub('aml','Acute myeloid leukemia (AML)','leukemia/patient/adult-aml-treatment-pdq',noStage),sub('cll','Chronic lymphocytic leukemia (CLL)','leukemia/patient/cll-treatment-pdq',{system:'Rai stage',labels:['Rai 0','Rai I','Rai II','Rai III','Rai IV'],note:'Rai is one CLL staging system; Binet is another. Rai stages are not solid-tumor TNM stages.'}),sub('cml','Chronic myeloid leukemia (CML)','leukemia/patient/cml-treatment-pdq',{system:'CML phase (NCI PDQ)',labels:['Chronic phase','Accelerated phase','Blastic phase'],note:'NCI PDQ describes these phases. CML classification differs between contemporary systems; these phases are not TNM stages.'})),family('myeloma','Multiple myeloma',sub('plasma-myeloma','Plasma cell myeloma','myeloma/patient/myeloma-treatment-pdq',{system:'ISS stage',labels:['ISS I','ISS II','ISS III'],note:'The International Staging System uses laboratory markers. Revised systems add further prognostic information; this is not bone-cancer staging.'}))]
     case 'lymph': return [family('lymphoma','Lymphoma',sub('hodgkin','Classical Hodgkin lymphoma','lymphoma/patient/adult-hodgkin-treatment-pdq',{...tnm,system:'Lymphoma stage'}),sub('dlbcl','Diffuse large B-cell lymphoma','lymphoma/patient/adult-nhl-treatment-pdq',{...tnm,system:'Lymphoma stage'}),sub('follicular-lymphoma','Follicular lymphoma','lymphoma/patient/adult-nhl-treatment-pdq',{...tnm,system:'Lymphoma stage'}))]
   }
+}
+
+export function getTaxonomy(id:RegionId,gender:Gender):CancerFamily[] {
+ return expandTaxonomy(id,gender,getBaseTaxonomy(id,gender)).map(family=>({
+   ...family, frequency:frequencyFor(family.id,id,gender,family.subtypes[0].source),
+   subtypes:family.subtypes.map(subtype=>({...subtype,frequency:frequencyFor(subtype.id,id,gender,subtype.source),treatment:treatmentFor(id,subtype.id,subtype.source)})),
+ }))
 }

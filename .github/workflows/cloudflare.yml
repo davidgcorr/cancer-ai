@@ -1,0 +1,68 @@
+name: Cloudflare deployment
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cloudflare-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    name: Verify application
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+      - run: npm run build
+      - name: Validate Cloudflare configuration
+        run: npx wrangler deploy --dry-run
+      - uses: actions/upload-artifact@v4
+        with:
+          name: production-site
+          path: dist
+          retention-days: 7
+          if-no-files-found: error
+
+  deploy:
+    name: Deploy production
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: verify
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://oncomilver.davidgc.com
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: production-site
+          path: dist
+      - name: Deploy to Cloudflare
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
+            echo '::error::Set the CLOUDFLARE_API_TOKEN repository secret. See README.md for required permissions.'
+            exit 1
+          fi
+          npx wrangler deploy
+      - name: Check production
+        run: node scripts/verify-deployment.mjs https://oncomilver.davidgc.com

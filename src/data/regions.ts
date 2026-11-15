@@ -1,8 +1,9 @@
+import { getTaxonomy } from './cancer-taxonomy.ts'
 export type Gender = 'male' | 'female'
 export type RegionId = 'brain' | 'thyroid' | 'lungs' | 'breast' | 'liver' | 'colorectal' | 'pelvis' | 'skin' | 'bones' | 'blood' | 'lymph' | 'kidneys' | 'bladder' | 'pancreas' | 'stomach' | 'esophagus' | 'headneck'
 export type Region = { id: RegionId; name: string; system: string; description: string; types: string[]; source: string }
 export function getRegions(gender: Gender): Region[] {
-  return [
+  const regions: Region[] = [
     { id: 'brain', name: 'Brain', system: 'Nervous system', description: 'Explore selected primary brain tumors. Tumor grade is different from cancer stage.', types: ['Glioma'], source: 'brain' },
     { id: 'headneck', name: 'Head & neck', system: 'Head and neck', description: 'Selected cancers of the oral cavity and larynx. Staging depends on the exact primary site.', types: ['Head and neck cancer'], source: 'head-and-neck' },
     { id: 'thyroid', name: 'Thyroid', system: 'Endocrine system', description: 'Thyroid cancer classification depends on histology; age also affects differentiated thyroid cancer stage.', types: ['Differentiated thyroid cancer', 'Medullary thyroid cancer', 'Anaplastic thyroid cancer'], source: 'thyroid' },
@@ -21,6 +22,7 @@ export function getRegions(gender: Gender): Region[] {
     { id: 'blood', name: 'Blood & bone marrow', system: 'Hematopoietic system', description: 'Leukemia and myeloma involve blood-forming cells and bone marrow. They are systemic diseases, not a tumor at one body point.', types: ['Leukemia', 'Multiple myeloma'], source: 'leukemia' },
     { id: 'lymph', name: 'Lymphatic system', system: 'Immune system', description: 'Lymphomas develop in lymphocytes and can involve lymph nodes, spleen, marrow, and other organs throughout the body.', types: ['Lymphoma'], source: 'lymphoma' },
   ]
+  return regions.map(region=>({...region,types:getTaxonomy(region.id,gender).map(family=>family.label)}))
 }
 export function getCancerUrl(type: string, fallback: string): string {
   const sources: Record<string, string> = { 'Endometrial cancer': 'uterine', 'Cervical cancer': 'cervical', 'Ovarian cancer': 'ovarian', 'Multiple myeloma': 'myeloma', 'Melanoma': 'skin', 'Pancreatic neuroendocrine tumor': 'pancreatic' }

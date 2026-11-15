@@ -1,3 +1,4 @@
+import { useI18n } from '@/lib/i18n/provider'
 import { Suspense, useMemo, useState, Component } from 'react'
 import type { ReactNode } from 'react'
 import { Info, LoaderCircle } from 'lucide-react'
@@ -15,6 +16,7 @@ import type { Gender, Region, RegionId } from '@/data/regions'
 type Props = { gender: Gender; regions: Region[]; selected: RegionId; onSelect: (id: RegionId) => void; resetKey: number; markers: boolean; back: boolean; view: AnatomyView; highlightColor: string }
 const ignoreRaycast = () => {}
 function AnatomicalBody({ gender, selected, onSelect, markers, regions, view, highlightColor }: Props) {
+  const { t } = useI18n()
   // Meshopt is bundled locally by Drei; no remote model/decoder requests.
   const [base, supplement] = useGLTF([MODEL_URLS[gender], SUPPLEMENT_URLS[gender]], false, true)
   const meshes = useMemo(() => [...extractAnatomyMeshes(base.scene), ...extractAnatomyMeshes(supplement.scene)], [base.scene, supplement.scene])
@@ -65,25 +67,27 @@ function AnatomicalBody({ gender, selected, onSelect, markers, regions, view, hi
         <sphereGeometry args={[selected === region.id ? .014 : .009, 16, 16]}/><meshBasicMaterial color={selected === region.id ? '#ffffff' : highlightColor}/>
       </mesh>
     })}
-    {markers && labelPosition && !(['skin','bones'].includes(selected) && !hover) && (view !== 'surface' || hover) && <Html position={labelPosition} center style={{ pointerEvents: 'none' }}><Badge variant="outline" className="translate-x-1/2 whitespace-nowrap bg-background shadow-sm">{label}</Badge></Html>}
+    {markers && labelPosition && !(['skin','bones'].includes(selected) && !hover) && (view !== 'surface' || hover) && <Html position={labelPosition} center style={{ pointerEvents: 'none' }}><Badge variant="outline" className="translate-x-1/2 whitespace-nowrap bg-background shadow-sm">{t(label??'')}</Badge></Html>}
   </group>
 }
+function ModelError({onRetry}:{onRetry:()=>void}) { const { t } = useI18n(); return <div className="absolute inset-0 flex items-center justify-center p-6"><Alert className="max-w-sm"><Info/><AlertTitle>{t("Model unavailable")}</AlertTitle><AlertDescription><p>{t("Check WebGL support and try reloading the model. Cancer topics are still available in the region list.")}</p><Button variant="outline" size="sm" className="mt-3" onClick={onRetry}>{t("Try again")}</Button></AlertDescription></Alert></div> }
 class CanvasBoundary extends Component<{ children: ReactNode }, { failed: boolean; retry: number }> {
   state = { failed: false, retry: 0 }
   static getDerivedStateFromError() { return { failed: true } }
   render() {
-    return this.state.failed ? <div className="absolute inset-0 flex items-center justify-center p-6"><Alert className="max-w-sm"><Info/><AlertTitle>Model unavailable</AlertTitle><AlertDescription><p>Check WebGL support and try reloading the model. Cancer topics are still available in the region list.</p><Button variant="outline" size="sm" className="mt-3" onClick={()=>this.setState(s=>({failed:false,retry:s.retry+1}))}>Try again</Button></AlertDescription></Alert></div> : <div key={this.state.retry} className="h-full">{this.props.children}</div>
+    return this.state.failed ? <ModelError onRetry={()=>this.setState(s=>({failed:false,retry:s.retry+1}))}/> : <div key={this.state.retry} className="h-full">{this.props.children}</div>
   }
 }
 export function BodyViewer(props: Props) {
+  const { t } = useI18n()
   const note = coverageNote(props.selected, props.gender)
-  return <><CanvasBoundary><Canvas camera={{position:[0,.3,8.5],fov:39}} dpr={[1,1.5]} aria-label={`Detailed ${props.gender} anatomical model, ${props.view} view. Select body regions from the list or the model.`}>
+  return <><CanvasBoundary><Canvas camera={{position:[0,.3,8.5],fov:39}} dpr={[1,1.5]} aria-label={t("Detailed {gender} anatomical model, {view} view. Select body regions from the list or the model.",{gender:t(props.gender==='male'?'Male':'Female'),view:t(props.view==='organs'?'Organs':props.view==='skeleton'?'Skeleton':'Surface')})}>
     <color attach="background" args={['#fafafa']}/>
     <ambientLight intensity={.9}/><directionalLight position={[-3,5,5]} intensity={1.8}/><directionalLight position={[3,1,-3]} intensity={1} color="#ffffff"/>
-    <Suspense fallback={<Html center><Card className="whitespace-nowrap py-0 shadow-sm" role="status"><CardContent className="flex items-center gap-2 px-4 py-3 text-sm text-muted-foreground"><LoaderCircle className="size-4 animate-spin"/>Loading anatomical model…</CardContent></Card></Html>}>
+    <Suspense fallback={<Html center><Card className="whitespace-nowrap py-0 shadow-sm" role="status"><CardContent className="flex items-center gap-2 px-4 py-3 text-sm text-muted-foreground"><LoaderCircle className="size-4 animate-spin"/>{t("Loading anatomical model…")}</CardContent></Card></Html>}>
       <group rotation={[0,props.back?Math.PI:0,0]} position={[0,-2.4,0]} scale={3}><AnatomicalBody key={props.gender} {...props}/></group>
     </Suspense>
     <ContactShadows position={[0,-2.41,0]} opacity={.18} scale={7} blur={2.5} far={4}/>
     <OrbitControls key={props.resetKey} target={[0,.2,0]} enablePan minDistance={3} maxDistance={11} minPolarAngle={Math.PI*.18} maxPolarAngle={Math.PI*.8}/>
-  </Canvas></CanvasBoundary>{note && <Alert className="absolute right-4 bottom-4 left-4 w-auto bg-background/95"><Info/><AlertDescription>{note}</AlertDescription></Alert>}</>
+  </Canvas></CanvasBoundary>{note && <Alert className="absolute right-4 bottom-4 left-4 w-auto bg-background/95"><Info/><AlertDescription>{t(note)}</AlertDescription></Alert>}</>
 }

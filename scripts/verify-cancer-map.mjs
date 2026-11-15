@@ -56,7 +56,7 @@ for(const gender of ['male','female']) {
  for(const acute of blood.subtypes.filter(s=>['all','aml'].includes(s.id))) assert.ok(acute.classification.labels.every(l=>!l.includes('Stage')))
  assert.ok(blood.subtypes.find(s=>s.id==='cll').classification.labels.every(l=>l.startsWith('Rai')))
  const brain=getTaxonomy('brain',gender)
- assert.ok(brain.flatMap(f=>f.subtypes).every(s=>s.classification.labels.every(l=>l.startsWith('Grade'))))
+ assert.ok(brain.find(f=>f.id==='glioma').subtypes.every(s=>s.classification.labels.every(l=>l.startsWith('Grade'))))
  const smallCell=getTaxonomy('lungs',gender).find(f=>f.id==='sclc')
  assert.deepEqual(smallCell.subtypes[0].classification.labels,['Limited stage','Extensive stage'])
 }
